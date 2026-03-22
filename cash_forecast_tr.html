@@ -972,6 +972,12 @@ function saveData() {
   localStorage.setItem(SK, JSON.stringify({fdb:FDB, rdb:RDB, cdb:CDB, flast:FLAST, rlast:RLAST, sgf:showGuideF, sgr:showGuideR}));
 }
 
+function getComment(cid, wid) { return CDB[cid]?.[wid] || ''; }
+function setComment(cid, wid, txt) {
+  if (!CDB[cid]) CDB[cid] = {};
+  CDB[cid][wid] = txt;
+}
+
 // ── POWER AUTOMATE / SHAREPOINT SYNC ──────────────────────────────────────
 const PA_WRITE = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/b3f9aba87057410d88456158c0f7adf1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=y1IQPGO_ayRpuSmotLaNW_kI5Elh7XxXjadOxlMojrQ';
 const PA_READ  = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/eb608ece95cc4613a96963688c9270e9/triggers/manual/paths/invoke?api-version=1';
@@ -1042,9 +1048,9 @@ async function loadFromSharePoint(cid, wid) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ Empresa: cid, Semana: rwid })
     });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) return; // silently fall back to localStorage
     const items = await res.json();
-    if (!Array.isArray(items)) return;
+    if (!Array.isArray(items) || items.length === 0) return;
 
     items.forEach(item => {
       const { Empresa, Semana, Tipo, Rubro, Valor, Nota, Comentario } = item;
@@ -1060,12 +1066,8 @@ async function loadFromSharePoint(cid, wid) {
     });
     saveData(); // update localStorage cache
   } catch(e) {
-    console.error('SharePoint read error:', e);
+    console.warn('SharePoint read error (using local cache):', e);
   }
-}
-function setComment(cid, wid, txt) {
-  if (!CDB[cid]) CDB[cid] = {};
-  CDB[cid][wid] = txt;
 }
 
 function getF(cid,wid,rid) { return FDB[cid]?.[wid]?.[rid] || {v:'',n:'',c:''}; }
@@ -1559,21 +1561,26 @@ function renderGrid(mode) {
 async function selectCo(mode, cid) {
   if (mode==='forecast') { activeFCo=cid; activeFWk=getCurrentWeekId(WEEKS); }
   else                   { activeRCo=cid; activeRWk=getCurrentWeekId(REAL_WEEKS); }
+
+  // Show skeleton immediately from localStorage cache
   renderSidebar(mode); renderContent(mode);
 
-  // Load all weeks for this company from SharePoint
-  toast('⏳ Cargando datos…', '');
-  const wkPool = mode==='forecast' ? WEEKS : REAL_WEEKS;
-  const tipo   = mode==='forecast' ? 'forecast' : 'real';
-  // Load current week first for speed, then rest in background
+  // Load current week from SharePoint and re-render
   const curWid = mode==='forecast' ? activeFWk : activeRWk;
+  toast('⏳ Cargando datos…', '');
   await loadFromSharePoint(cid, curWid);
-  renderContent(mode);
+  renderSidebar(mode); renderContent(mode);
   toast('✓ Datos cargados', 'ok');
 
-  // Load remaining weeks in background
+  // Load remaining weeks silently in background
+  const wkPool = mode==='forecast' ? WEEKS : REAL_WEEKS;
   wkPool.forEach(w => {
-    if (w.id !== curWid) loadFromSharePoint(cid, w.id);
+    if (w.id !== curWid) {
+      loadFromSharePoint(cid, w.id).then(() => {
+        // Refresh sidebar dots as weeks load
+        renderSidebar(mode);
+      });
+    }
   });
 }
 function selectWk(mode, wid) {

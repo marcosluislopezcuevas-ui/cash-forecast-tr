@@ -1,0 +1,2524 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cash Forecast — Traxion Logística y Tecnología</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" onerror="console.warn('Chart.js CDN failed')"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" onerror="console.warn('jsPDF CDN failed — PDF export disabled')"></script>
+<style>
+:root {
+  --lime:       #D0DF00;
+  --lime-dark:  #B5BD00;
+  --lime-deep:  #8F8F00;
+  --lime-light: #E3E935;
+  --lime-pale:  #F4F9B0;
+  --lime-bg:    #F9FBD4;
+  --gray-10:    #63666A;
+  --gray-7:     #97999B;
+  --gray-2:     #D0D0CE;
+  --surface:    #FAFAFA;
+  --surface2:   #F4F4F4;
+  --border:     #E0E0DE;
+  --border-med: #D0D0CE;
+  --text:       #63666A;
+  --text-muted: #97999B;
+  --text-dim:   #ABABAA;
+  --white:      #FFFFFF;
+  --in-color:   #2A8A1A;  --in-bg:  #EEF8EB;
+  --out-color:  #B53B2A;  --out-bg: #FDF0EE;
+  --pos-color:  #185A82;  --pos-bg: #EBF5FA;
+  --real-color: #7B3FC4;  --real-bg: #F3EEFF;
+  --radius: 8px; --radius-lg: 14px;
+  --fh: 'Barlow Condensed', sans-serif;
+  --fb: 'Barlow', sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--white); color: var(--text); font-family: var(--fb); font-size:18px; min-height:100vh; line-height:1.5; }
+
+/* ── NAV ── */
+.nav {
+  position:sticky; top:0; z-index:200;
+  background:var(--white); border-bottom:3px solid var(--lime);
+  padding:0 28px; display:flex; align-items:center; height:58px; gap:14px;
+}
+.nav-brand { font-family:var(--fh); font-weight:700; font-size:22px; letter-spacing:-0.01em; color:var(--gray-10); }
+.nav-sub   { font-size:14px; color:var(--gray-7); }
+.nav-div   { width:1px; height:28px; background:var(--border); flex-shrink:0; }
+.nav-tabs  { display:flex; gap:2px; }
+.nav-tab {
+  font-family:var(--fh); font-weight:700; font-size:15px; letter-spacing:0.05em; text-transform:uppercase;
+  padding:6px 16px; border-radius:6px; cursor:pointer; border:1.5px solid transparent;
+  background:transparent; color:var(--text-muted); transition:all 0.15s;
+}
+.nav-tab:hover { color:var(--text); background:var(--surface2); }
+.nav-tab.active { background:var(--lime); color:var(--gray-10); border-color:var(--lime-dark); }
+.nav-tab.real-tab.active { background:var(--real-bg); color:var(--real-color); border-color:var(--real-color); }
+.nav-spacer { flex:1; }
+.nav-date   { font-size:14px; color:var(--text-muted); }
+.badge-live { font-size:13px; font-weight:600; padding:3px 10px; border-radius:3px; background:var(--lime); color:var(--gray-10); text-transform:uppercase; letter-spacing:0.04em; }
+.btn-primary {
+  background:var(--lime); color:var(--gray-10); border:none; border-radius:var(--radius);
+  font-family:var(--fh); font-weight:700; font-size:15px; letter-spacing:0.06em; text-transform:uppercase;
+  padding:9px 20px; cursor:pointer; transition:background 0.15s, transform 0.1s; white-space:nowrap;
+}
+.btn-primary:hover { background:var(--lime-light); }
+.btn-primary:active { transform:scale(0.97); }
+.btn-ghost {
+  background:transparent; color:var(--text-muted); border:1.5px solid var(--border-med);
+  border-radius:var(--radius); font-family:var(--fh); font-weight:600; font-size:14px;
+  letter-spacing:0.05em; text-transform:uppercase; padding:7px 14px; cursor:pointer; transition:all 0.15s;
+}
+.btn-ghost:hover { border-color:var(--lime-dark); color:var(--lime-deep); background:var(--lime-bg); }
+
+/* ── PAGE SHELL ── */
+.page { display:none; height:calc(100vh - 58px); }
+.page.active { display:flex; }
+.page-scroll { display:none; height:calc(100vh - 58px); overflow-y:auto; }
+.page-scroll.active { display:block; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width:232px; flex-shrink:0; background:var(--surface);
+  border-right:1px solid var(--border); overflow-y:auto;
+  display:flex; flex-direction:column;
+}
+.sb-section { padding:20px 16px 0; }
+.sb-label { font-family:var(--fh); font-weight:700; font-size:12px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim); margin-bottom:8px; padding-left:2px; }
+.co-btn {
+  width:100%; display:flex; align-items:center; gap:10px;
+  background:transparent; border:1.5px solid transparent; border-radius:var(--radius);
+  cursor:pointer; padding:8px 10px; margin-bottom:3px;
+  text-align:left; transition:all 0.15s; color:var(--text-muted);
+}
+.co-btn:hover { background:var(--white); border-color:var(--border); color:var(--text); }
+.co-btn.active { background:var(--white); border-color:var(--lime-dark); color:var(--text); box-shadow:0 0 0 3px var(--lime-pale); }
+.co-avatar {
+  width:32px; height:32px; border-radius:6px; display:flex; align-items:center; justify-content:center;
+  font-family:var(--fh); font-weight:800; font-size:13px; flex-shrink:0;
+  background:var(--lime-pale); color:var(--lime-deep); border:1.5px solid var(--lime);
+}
+.co-btn.active .co-avatar { background:var(--lime); color:var(--gray-10); }
+.co-name { font-size:14px; font-weight:600; line-height:1.3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.co-meta { font-size:12px; color:var(--text-dim); margin-top:1px; }
+.co-meta.done { color:var(--in-color); }
+.datestamp { font-size:12px; color:var(--text-dim); margin-top:2px; display:flex; align-items:center; gap:4px; }
+.datestamp.saved { color:var(--in-color); }
+.ds-dot { width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+
+/* real sidebar variant */
+.co-btn.real-active { border-color:var(--real-color); box-shadow:0 0 0 3px var(--real-bg); }
+.co-btn.real-active .co-avatar { background:var(--real-color); color:var(--white); border-color:var(--real-color); }
+
+.wk-item {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:6px 10px; border-radius:6px; cursor:pointer; font-size:14px; color:var(--text-muted);
+  transition:all 0.13s; margin-bottom:2px; border:1px solid transparent;
+}
+.wk-item:hover { background:var(--white); color:var(--text); }
+.wk-item.active { background:var(--lime-pale); border-color:var(--lime-dark); color:var(--text); }
+.wk-item.real-active { background:var(--real-bg); border-color:var(--real-color); color:var(--text); }
+.wk-lbl  { font-family:var(--fh); font-weight:700; font-size:14px; }
+.wk-rng  { font-size:12px; color:var(--text-dim); margin-top:1px; }
+.wk-dot  { width:7px; height:7px; border-radius:50%; background:var(--border-med); flex-shrink:0; }
+.wk-dot.done    { background:var(--in-color); }
+.wk-dot.partial { background:#E09000; }
+.wk-dot.real    { background:var(--real-color); }
+
+.sb-progress { padding:16px 16px 20px; margin-top:auto; }
+.prog-outer { height:4px; background:var(--border); border-radius:2px; overflow:hidden; margin:6px 0 8px; }
+.prog-inner { height:100%; border-radius:2px; background:linear-gradient(90deg, var(--lime-dark), var(--lime-light)); transition:width 0.4s ease; }
+.prog-text  { font-size:13px; color:var(--text-muted); font-family:var(--fh); font-weight:600; }
+
+/* ── CONTENT (shared between Forecast and Real) ── */
+.content { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+.co-header {
+  background:var(--white); border-bottom:1px solid var(--border);
+  padding:20px 32px 0; position:sticky; top:0; z-index:100;
+}
+.hdr-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:14px; }
+.hdr-title { font-family:var(--fh); font-weight:800; font-size:28px; letter-spacing:-0.01em; }
+.hdr-sub   { font-size:14px; color:var(--text-muted); margin-top:3px; }
+.hdr-pills { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.hdr-pill  { font-family:var(--fh); font-size:13px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase; padding:4px 10px; border-radius:4px; background:var(--lime-pale); color:var(--lime-deep); border:1px solid var(--lime); }
+.hdr-pill.real { background:var(--real-bg); color:var(--real-color); border-color:var(--real-color); }
+.hdr-pill.teal { background:#EAF6FA; color:#1A6A82; border-color:#90D4E8; }
+.week-tabs { display:flex; gap:2px; overflow-x:auto; padding-bottom:0; scrollbar-width:none; }
+.week-tabs::-webkit-scrollbar { display:none; }
+.wk-tab {
+  padding:8px 14px; font-family:var(--fh); font-weight:700; font-size:14px; letter-spacing:0.04em; text-transform:uppercase;
+  color:var(--text-muted); background:transparent; border:none; border-bottom:3px solid transparent;
+  cursor:pointer; white-space:nowrap; flex-shrink:0; transition:all 0.13s;
+}
+.wk-tab:hover { color:var(--text); }
+.wk-tab.active       { color:var(--lime-deep); border-bottom-color:var(--lime-dark); }
+.wk-tab.real-active  { color:var(--real-color); border-bottom-color:var(--real-color); }
+.wk-tab.filled       { color:var(--in-color); }
+.wk-tab.real-filled  { color:var(--real-color); }
+
+/* guide */
+.guide {
+  margin:16px 32px 0; background:var(--lime-bg); border:1px solid var(--lime);
+  border-left:4px solid var(--lime-dark); border-radius:var(--radius);
+  padding:12px 16px; display:flex; gap:12px; align-items:flex-start;
+  font-size:14px; color:var(--gray-10); line-height:1.6;
+}
+.guide.real-guide { background:var(--real-bg); border-color:var(--real-color); border-left-color:var(--real-color); }
+.guide strong { font-weight:700; }
+.guide-close { margin-left:auto; flex-shrink:0; background:none; border:none; cursor:pointer; color:var(--text-dim); font-size:18px; padding:0 2px; }
+
+/* ── GRID ── */
+.grid-wrap { padding:20px 32px 100px; animation:fadeUp 0.22s ease; }
+.sec-head { display:flex; align-items:center; gap:10px; margin:24px 0 8px; }
+.sec-head:first-child { margin-top:0; }
+.sec-head { display:flex; align-items:center; gap:10px; margin:20px 0 6px; }
+.sec-tag { font-family:var(--fh); font-weight:800; font-size:13px; letter-spacing:0.1em; text-transform:uppercase; }
+.sec-tag.in  { color:var(--in-color);  }
+.sec-tag.out { color:var(--out-color); }
+.sec-tag.pos { color:var(--pos-color); }
+.sec-tag.real-tag { color:var(--real-color); }
+.sec-line { flex:1; height:2px; background:var(--border-med); border-radius:1px; }
+
+.col-hdrs { display:grid; grid-template-columns:210px 35fr 65fr 154px; margin-bottom:6px; }
+.col-hdr  { font-family:var(--fh); font-weight:700; font-size:12px; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); padding:0 12px; }
+.col-hdr:nth-child(2) { text-align:right; padding-right:16px; }
+.col-hdr:nth-child(3) { padding-left:14px; }
+
+.row {
+  display:grid; grid-template-columns:210px 35fr 65fr 154px;
+  border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--white); margin-bottom:4px; overflow:hidden; transition:border-color 0.13s, box-shadow 0.13s;
+}
+.row:hover { border-color:var(--gray-2); }
+.row:focus-within { border-color:var(--lime-dark); box-shadow:0 0 0 3px var(--lime-pale); }
+.row.real-mode:focus-within { border-color:var(--real-color); box-shadow:0 0 0 3px var(--real-bg); }
+.row.total-row    { background:var(--surface2); border-color:var(--gray-2); }
+.row.balance-row  { background:var(--lime-bg); border-color:var(--lime); border-width:1.5px; }
+.row.real-balance { background:var(--real-bg); border-color:var(--real-color); border-width:1.5px; }
+.row.saldo-ini-row  { background:var(--pos-bg); border-color:#A8D4EC; }
+
+.row-lbl { padding:11px 14px; border-right:1px solid var(--border); display:flex; flex-direction:column; justify-content:center; }
+.row-lbl-name { font-weight:600; font-size:15px; }
+.row-lbl-hint { font-size:12px; color:var(--text-dim); margin-top:1px; line-height:1.3; }
+.row-lbl.bold .row-lbl-name { font-weight:700; }
+
+.inp-cell   { padding:6px 10px; border-right:1px solid var(--border); display:flex; align-items:center; }
+.notes-cell { padding:6px 10px; border-right:1px solid var(--border); display:flex; align-items:center; }
+.conf-cell  { padding:6px 10px; display:flex; align-items:center; gap:4px; }
+
+.forecast-inp {
+  width:100%; background:transparent; border:none; outline:none;
+  font-family:var(--fb); font-size:15px; font-weight:500; color:var(--text); text-align:right;
+  padding:7px 8px; border-radius:5px; transition:background 0.13s;
+}
+.forecast-inp:focus { background:var(--lime-pale); }
+.forecast-inp.real-inp:focus { background:var(--real-bg); }
+.forecast-inp::placeholder { color:var(--text-dim); font-weight:300; }
+
+.notes-inp {
+  width:100%; background:transparent; border:none; outline:none; resize:none;
+  font-family:var(--fb); font-size:13px; color:var(--text-muted); padding:6px 6px; border-radius:5px; line-height:1.4; transition:background 0.13s;
+}
+.notes-inp:focus { background:var(--surface); }
+.notes-inp::placeholder { color:var(--text-dim); }
+
+.conf-btn {
+  flex:1; padding:5px 0; text-align:center;
+  font-family:var(--fh); font-weight:700; font-size:13px; letter-spacing:0.06em; border-radius:4px; cursor:pointer;
+  border:1.5px solid var(--border-med); background:transparent; color:var(--text-dim); transition:all 0.13s;
+}
+.conf-btn:hover { border-color:var(--gray-7); color:var(--text-muted); }
+.conf-btn.a { border-color:var(--in-color); background:var(--in-bg); color:var(--in-color); }
+.conf-btn.m { border-color:#B07800; background:#FFF8E8; color:#7A5200; }
+.conf-btn.b { border-color:var(--out-color); background:var(--out-bg); color:var(--out-color); }
+
+.comp-val { font-family:var(--fb); font-weight:700; font-size:16px; text-align:right; padding:0 18px; }
+.v-pos   { color:var(--in-color); }
+.v-neg   { color:var(--out-color); }
+.v-blue  { color:var(--pos-color); }
+.v-lime  { color:var(--lime-deep); }
+.v-real  { color:var(--real-color); }
+.v-muted { color:var(--text-muted); font-weight:500; }
+
+.subtotal-row {
+  display:flex; align-items:center; justify-content:space-between; padding:8px 14px;
+  background:var(--surface2); border:1px solid var(--gray-2); border-radius:var(--radius); margin-bottom:8px;
+}
+.subtotal-lbl { font-family:var(--fh); font-weight:700; font-size:13px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); }
+.subtotal-val { font-family:var(--fb); font-weight:700; font-size:16px; }
+
+/* ── SUMMARY BAR ── */
+.summary-bar {
+  position:fixed; bottom:0; right:0; width:calc(100% - 232px);
+  background:var(--white); border-top:3px solid var(--lime); padding:10px 32px;
+  display:none; align-items:center; gap:0; z-index:150;
+}
+.summary-bar.real-bar { border-top-color:var(--real-color); }
+.kpi-block { flex:1; display:flex; flex-direction:column; padding:0 16px; border-right:1px solid var(--border); }
+.kpi-block:first-child { padding-left:0; }
+.kpi-block:last-child  { border-right:none; padding-right:0; }
+.kpi-lbl { font-family:var(--fh); font-weight:700; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim); margin-bottom:2px; }
+.kpi-val { font-family:var(--fb); font-weight:700; font-size:18px; color:var(--text); line-height:1.1; }
+.kpi-val.pos  { color:var(--in-color); }
+.kpi-val.neg  { color:var(--out-color); }
+.kpi-val.blue { color:var(--pos-color); }
+.kpi-val.lime { color:var(--lime-deep); }
+.kpi-val.real { color:var(--real-color); }
+
+/* ── EMPTY STATE ── */
+.empty-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px; text-align:center; color:var(--text-muted); }
+.empty-logo  { font-family:var(--fh); font-weight:800; font-size:56px; color:var(--lime); letter-spacing:-0.03em; margin-bottom:4px; }
+.empty-title { font-family:var(--fh); font-weight:700; font-size:20px; color:var(--text); margin-bottom:8px; }
+
+/* ── CONSOLIDADO ── */
+.cons-wrap { padding:24px 32px 100px; }
+.cons-filter-bar { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:20px; }
+.cons-filter-title { font-family:var(--fh); font-weight:700; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); margin-bottom:10px; }
+.cons-co-chips { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.co-chip { display:flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; cursor:pointer; font-size:14px; font-weight:600; font-family:var(--fh); border:1.5px solid var(--border-med); background:var(--white); color:var(--text-muted); transition:all 0.13s; user-select:none; }
+.co-chip:hover { border-color:var(--lime-dark); color:var(--text); }
+.co-chip.selected { background:var(--lime); border-color:var(--lime-dark); color:var(--gray-10); }
+.chip-all { font-size:13px; padding:4px 12px; background:var(--surface2); border-color:var(--gray-2); font-style:italic; }
+.chip-all:hover { background:var(--lime-pale); border-color:var(--lime-dark); }
+
+.cons-kpis { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
+.cons-kpi  { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:14px 16px; }
+.cons-kpi-lbl { font-family:var(--fh); font-weight:700; font-size:11px; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-dim); margin-bottom:4px; }
+.cons-kpi-val { font-family:var(--fb); font-weight:700; font-size:20px; line-height:1.1; }
+.cons-kpi-sub { font-size:12px; color:var(--text-dim); margin-top:3px; }
+
+.chart-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; margin-bottom:16px; }
+.chart-title { font-family:var(--fh); font-weight:800; font-size:16px; letter-spacing:0.04em; text-transform:uppercase; color:var(--text); margin-bottom:12px; }
+.chart-legend { display:flex; gap:16px; flex-wrap:wrap; margin-bottom:12px; }
+.legend-item { display:flex; align-items:center; gap:5px; font-size:13px; color:var(--text-muted); }
+.legend-dot  { width:10px; height:3px; border-radius:2px; }
+
+.cons-scenario-panel { margin-bottom:16px; }
+.scen-matrix-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.scen-matrix-hdr {
+  padding:14px 18px; display:flex; justify-content:space-between; align-items:center;
+  cursor:pointer; user-select:none; background:var(--surface);
+  border-bottom:1px solid var(--border); transition:background 0.13s;
+}
+.scen-matrix-hdr:hover { background:var(--lime-bg); }
+
+/* Matrix table */
+.scen-mx-table {
+  width:100%; border-collapse:collapse; font-size:13px;
+  font-family:var(--fb); min-width:700px;
+}
+.scen-mx-table th {
+  padding:8px 6px; font-family:var(--fh); font-weight:700; font-size:11px;
+  letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted);
+  background:var(--surface2); border-bottom:2px solid var(--lime);
+  white-space:nowrap; text-align:center;
+}
+.scen-mx-table th:first-child { text-align:left; min-width:120px; padding-left:12px; }
+.scen-mx-table th.in-hdr  { color:var(--white); background:var(--in-color);  border-bottom-color:var(--in-color); }
+.scen-mx-table th.out-hdr { color:var(--white); background:var(--out-color); border-bottom-color:var(--out-color); }
+.scen-mx-table tr.mx-sec-hdr.in-hdr  td { background:var(--surface2); color:var(--in-color);  border-top:2px solid var(--border-med); border-bottom:1px solid var(--border-med); }
+.scen-mx-table tr.mx-sec-hdr.out-hdr td { background:var(--surface2); color:var(--out-color); border-top:2px solid var(--border-med); border-bottom:1px solid var(--border-med); }
+.scen-mx-table tr.mx-sec-hdr td { cursor:pointer; user-select:none; }
+.scen-mx-table tr.mx-sec-hdr:hover td { background:var(--lime-bg) !important; }
+
+.scen-mx-table td { padding:4px 4px; border-bottom:1px solid var(--border); text-align:center; vertical-align:middle; }
+.scen-mx-table td:first-child { text-align:left; padding-left:12px; font-family:var(--fh); font-weight:700; font-size:13px; border-right:2px solid var(--border); }
+.scen-mx-table tr:hover td { background:var(--lime-bg); }
+.scen-mx-table tr:last-child td { border-bottom:none; }
+
+/* Reset row btn */
+.row-reset-btn {
+  font-size:11px; color:var(--text-dim); background:none; border:none;
+  cursor:pointer; padding:0 4px; font-family:var(--fb);
+  text-decoration:underline; white-space:nowrap;
+}
+.row-reset-btn:hover { color:var(--out-color); }
+
+/* Spinner in matrix */
+.mx-spinner { display:flex; align-items:center; justify-content:center; gap:1px; }
+.mx-spin-btn {
+  width:16px; height:22px; border:1px solid var(--border-med);
+  background:var(--surface2); color:var(--text-muted); font-size:9px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  transition:all 0.12s; padding:0; flex-shrink:0;
+}
+.mx-spin-btn:first-child { border-radius:3px 0 0 3px; }
+.mx-spin-btn:last-child  { border-radius:0 3px 3px 0; }
+.mx-spin-btn:hover { background:var(--lime-pale); border-color:var(--lime-dark); color:var(--lime-deep); }
+.mx-spin-input {
+  width:38px; height:22px; border:1px solid var(--border-med);
+  border-left:none; border-right:none; text-align:center;
+  font-family:var(--fh); font-weight:800; font-size:13px;
+  background:var(--white); outline:none; padding:0;
+  -moz-appearance:textfield;
+}
+.mx-spin-input::-webkit-inner-spin-button,
+.mx-spin-input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+.mx-spin-input:focus { background:var(--lime-pale); }
+.mx-spin-input.pos  { color:var(--in-color); }
+.mx-spin-input.neg  { color:var(--out-color); }
+.mx-spin-input.zero { color:var(--text-dim); }
+
+/* spinner */
+.spinner-wrap { display:flex; align-items:center; gap:2px; }
+.spin-btn { width:20px; height:26px; border:1px solid var(--border-med); background:var(--surface2); color:var(--text-muted); font-size:10px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.12s; padding:0; flex-shrink:0; }
+.spin-btn:first-child { border-radius:4px 0 0 4px; }
+.spin-btn:last-of-type { border-radius:0 4px 4px 0; }
+.spin-btn:hover { background:var(--lime-pale); border-color:var(--lime-dark); color:var(--lime-deep); }
+.spin-btn:active { transform:scale(0.93); }
+.spin-input { width:46px; height:26px; border:1px solid var(--border-med); border-left:none; border-right:none; text-align:center; font-family:var(--fh); font-weight:800; font-size:15px; background:var(--white); outline:none; padding:0 2px; -moz-appearance:textfield; }
+.spin-input::-webkit-inner-spin-button, .spin-input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+.spin-input:focus { background:var(--lime-pale); border-color:var(--lime-dark); }
+.spin-input.pos  { color:var(--in-color); }
+.spin-input.neg  { color:var(--out-color); }
+.spin-input.zero { color:var(--text-dim); }
+.spin-suffix { font-family:var(--fh); font-weight:700; font-size:13px; color:var(--text-dim); margin-left:3px; }
+
+/* scenario table */
+.scenario-table-wrap { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); overflow:hidden; }
+.scen-row { display:grid; grid-template-columns:90px repeat(13,1fr); border-bottom:1px solid var(--border); }
+.scen-row:last-child { border-bottom:none; }
+.scen-row.bajo { background:#FFF8F6; }
+.scen-row.base { background:var(--white); }
+.scen-row.alto { background:#F6FBF0; }
+.scen-row.diff { background:#FFFFF0; border-top:2px solid var(--lime); }
+.scen-row.hdr  { background:var(--surface2); border-bottom:2px solid var(--lime); }
+.scen-cell { padding:6px 4px; text-align:center; font-family:var(--fb); font-size:13px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.scen-cell:first-child { text-align:left; padding-left:12px; font-family:var(--fh); font-weight:700; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-muted); }
+.scen-cell.pos  { color:var(--in-color); }
+.scen-cell.neg  { color:var(--out-color); }
+.scen-cell.lime { color:var(--lime-deep); font-weight:700; }
+
+/* breakdown table - new rubros x empresas layout */
+.breakdown-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; margin-top:16px; }
+.breakdown-title { font-family:var(--fh); font-weight:800; font-size:16px; letter-spacing:0.04em; text-transform:uppercase; color:var(--text); margin-bottom:16px; }
+
+.bk-filters { display:flex; flex-direction:column; gap:10px; }
+.bk-filter-group { display:flex; align-items:flex-start; gap:12px; }
+.bk-filter-label { font-family:var(--fh); font-weight:700; font-size:12px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); padding-top:6px; min-width:64px; flex-shrink:0; }
+.bk-week-chips, .bk-co-chips { display:flex; flex-wrap:wrap; gap:5px; }
+.bk-chip {
+  font-family:var(--fh); font-weight:700; font-size:13px; letter-spacing:0.04em;
+  padding:4px 10px; border-radius:4px; cursor:pointer; user-select:none;
+  border:1.5px solid var(--border-med); background:var(--white); color:var(--text-muted);
+  transition:all 0.13s;
+}
+.bk-chip:hover { border-color:var(--lime-dark); color:var(--text); }
+.bk-chip.sel { background:var(--lime); border-color:var(--lime-dark); color:var(--gray-10); }
+.bk-chip.wk-chip { font-size:12px; padding:3px 8px; }
+
+/* Rubros table */
+.rub-table { width:100%; border-collapse:collapse; font-size:13px; font-family:var(--fb); min-width:600px; }
+.rub-table thead tr { background:var(--surface2); }
+.rub-table thead tr:first-child { border-bottom:2px solid var(--lime); }
+.rub-table th { padding:8px 10px; font-family:var(--fh); font-weight:700; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); white-space:nowrap; text-align:right; }
+.rub-table th:first-child { text-align:left; min-width:180px; }
+.rub-table th.total-th { border-left:2px solid var(--lime-dark); color:var(--lime-deep); background:var(--lime-bg); }
+
+.rub-table tbody td { padding:7px 10px; text-align:right; white-space:nowrap; border-bottom:1px solid var(--border); }
+.rub-table tbody td:first-child { text-align:left; }
+.rub-table tbody tr:hover { background:var(--lime-bg); }
+
+/* Row types */
+.rub-table tr.sec-row td { background:var(--surface2); border-top:2px solid var(--border-med); border-bottom:1px solid var(--border-med); }
+.rub-table tr.sec-row td:first-child { font-family:var(--fh); font-weight:800; font-size:13px; letter-spacing:0.1em; text-transform:uppercase; }
+.rub-table tr.sec-row.in-sec  td:first-child { color:var(--in-color); }
+.rub-table tr.sec-row.out-sec td:first-child { color:var(--out-color); }
+.rub-table tr.sec-row.pos-sec td:first-child { color:var(--pos-color); }
+
+.rub-table tr.sub-row td:first-child { padding-left:22px; color:var(--text); font-weight:500; }
+.rub-table tr.rub-subtotal td {
+  background: var(--surface2);
+  border-top: 2px solid var(--border-med);
+  border-bottom: 2px solid var(--border-med);
+  font-weight: 700;
+}
+.rub-table tr.rub-subtotal td:first-child {
+  font-family: var(--fh);
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--text);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.rub-table tr.rub-neto td {
+  background: var(--lime-pale);
+  border-top: 2px solid var(--lime-dark);
+  border-bottom: 1px solid var(--lime-dark);
+  font-weight: 700;
+}
+.rub-table tr.rub-neto td:first-child {
+  font-family: var(--fh); font-weight: 800; font-size: 12px; color: var(--lime-deep);
+}
+.rub-table tr.saldo-row td { background:var(--pos-bg); border-top:1px solid #A8D4EC; }
+.rub-table tr.saldo-row td:first-child { font-family:var(--fh); font-weight:800; font-size:14px; color:var(--pos-color); }
+.rub-table tr.fin-row td { background:var(--lime-bg); border-top:2px solid var(--lime-dark); border-bottom:2px solid var(--lime-dark); }
+.rub-table tr.fin-row td:first-child { font-family:var(--fh); font-weight:800; font-size:15px; color:var(--lime-deep); }
+
+.rub-table .cv-pos  { color:var(--in-color); font-weight:600; }
+.rub-table .cv-neg  { color:var(--out-color); font-weight:600; }
+.rub-table .cv-blue { color:var(--pos-color); font-weight:600; }
+.rub-table .cv-lime { color:var(--lime-deep); font-weight:700; }
+.rub-table .cv-zero { color:var(--text-dim); }
+.rub-table td.total-col { border-left:2px solid var(--lime-dark); background:var(--lime-bg) !important; font-weight:700; }
+
+/* ── HIERARCHICAL WEEK PICKER ── */
+.wk-picker { padding:12px 32px 0; border-top:1px solid var(--border); }
+.wk-picker-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; flex-wrap:wrap; }
+.wk-picker-label {
+  font-family:var(--fh); font-weight:700; font-size:11px; letter-spacing:0.14em;
+  text-transform:uppercase; color:var(--text-dim); min-width:36px; flex-shrink:0;
+}
+.wk-pill {
+  font-family:var(--fh); font-weight:700; font-size:13px; letter-spacing:0.03em;
+  padding:4px 10px; border-radius:4px; cursor:pointer; border:1.5px solid var(--border-med);
+  background:transparent; color:var(--text-muted); transition:all 0.13s; white-space:nowrap;
+}
+.wk-pill:hover { border-color:var(--lime-dark); color:var(--text); background:var(--lime-pale); }
+.wk-pill.active { background:var(--lime); border-color:var(--lime-dark); color:var(--gray-10); }
+.wk-pill.real-active { background:var(--real-color); border-color:var(--real-color); color:var(--white); }
+.wk-pill.filled { border-color:var(--in-color); color:var(--in-color); }
+.wk-pill.real-filled { border-color:var(--real-color); color:var(--real-color); }
+.wk-pill.cur::after { content:'●'; font-size:9px; margin-left:3px; vertical-align:middle; }
+.cmp-wrap { padding:24px 32px 60px; }
+.cmp-filter-bar { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:16px 20px; margin-bottom:20px; display:flex; gap:24px; align-items:center; flex-wrap:wrap; }
+.cmp-filter-title { font-family:var(--fh); font-weight:700; font-size:13px; letter-spacing:0.12em; text-transform:uppercase; color:var(--text-dim); }
+.cmp-co-chips { display:flex; flex-wrap:wrap; gap:6px; }
+
+.cmp-table { width:100%; border-collapse:collapse; font-size:13px; min-width:900px; }
+.cmp-table th { padding:8px 8px; font-family:var(--fh); font-weight:700; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-muted); white-space:nowrap; background:var(--surface2); border-bottom:2px solid var(--border); }
+.cmp-table th:first-child { text-align:left; min-width:160px; }
+.cmp-table th.wk-hdr { text-align:center; min-width:72px; }
+.cmp-table th.total-hdr { border-left:2px solid var(--lime); }
+.cmp-table td { padding:6px 8px; text-align:right; border-bottom:1px solid var(--border); font-size:13px; white-space:nowrap; }
+.cmp-table td:first-child { text-align:left; font-family:var(--fh); font-weight:700; font-size:13px; }
+.cmp-table td.total-col { border-left:2px solid var(--lime); font-weight:700; }
+.cmp-table tr.row-forecast td { background:var(--white); }
+.cmp-table tr.row-real     td { background:#FDFAFF; color:var(--real-color); }
+.cmp-table tr.row-var-abs  td { background:#FFFFF6; font-style:italic; }
+.cmp-table tr.row-var-pct  td { background:#FFFFF6; font-style:italic; font-weight:600; }
+.cmp-table tr.row-sep      td { height:5px; background:var(--surface2); padding:0; border:none; }
+.cmp-table tr.co-head      td { background:var(--surface2); font-family:var(--fh); font-weight:800; font-size:14px; color:var(--text); border-top:2px solid var(--border-med); letter-spacing:0.04em; }
+.cmp-table .val-pos  { color:var(--in-color); }
+.cmp-table .val-neg  { color:var(--out-color); }
+.cmp-table .val-real { color:var(--real-color); }
+.cmp-table .val-zero { color:var(--text-dim); }
+
+/* ── COMMENT AREA ── */
+.comment-area {
+  margin: 0 32px;
+  border: 1.5px solid var(--lime);
+  border-radius: var(--radius-lg);
+  background: var(--lime-bg);
+  padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.comment-area-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.comment-area-label {
+  font-family: var(--fh); font-weight: 800; font-size: 11px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--lime-deep);
+}
+.comment-area-meta {
+  font-size: 10px; color: var(--text-dim);
+}
+.comment-inp {
+  width: 100%; min-height: 72px; max-height: 160px;
+  background: var(--white); border: 1px solid var(--lime-dark);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-family: var(--fb); font-size: 13px; color: var(--text);
+  line-height: 1.6; resize: vertical; outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.comment-inp:focus {
+  border-color: var(--lime-dark);
+  box-shadow: 0 0 0 3px var(--lime-pale);
+}
+.comment-inp::placeholder { color: var(--text-dim); }
+
+/* ── RESUMEN PAGE ── */
+.res-wrap { padding: 24px 32px 60px; }
+.res-filter-bar {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 16px 20px;
+  margin-bottom: 24px; display: flex; gap: 20px;
+  align-items: flex-start; flex-wrap: wrap;
+}
+
+.res-header {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 20px; padding-bottom: 12px;
+  border-bottom: 3px solid var(--lime);
+}
+.res-header-title {
+  font-family: var(--fh); font-weight: 800; font-size: 22px;
+  color: var(--text); letter-spacing: -0.01em;
+}
+.res-header-sub {
+  font-size: 12px; color: var(--text-muted);
+}
+
+.res-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.res-card {
+  background: var(--white); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  break-inside: avoid;
+}
+.res-card-hdr {
+  background: var(--lime); padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.res-card-name {
+  font-family: var(--fh); font-weight: 800; font-size: 15px;
+  color: var(--gray-10); letter-spacing: 0.02em;
+}
+.res-card-short {
+  font-family: var(--fh); font-weight: 700; font-size: 11px;
+  color: var(--lime-deep); background: var(--white);
+  padding: 2px 8px; border-radius: 4px; letter-spacing: 0.06em;
+}
+
+.res-card-body { padding: 14px 16px; }
+
+.res-comment {
+  font-size: 13px; color: var(--text); line-height: 1.65;
+  min-height: 48px; margin-bottom: 14px;
+  padding: 10px 12px;
+  background: var(--lime-bg); border-left: 3px solid var(--lime-dark);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-style: italic;
+}
+.res-comment.empty {
+  color: var(--text-dim); font-style: italic;
+  background: var(--surface); border-left-color: var(--border-med);
+}
+
+.res-kpis {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.res-kpi {
+  background: var(--surface); border-radius: var(--radius);
+  padding: 8px 10px;
+}
+.res-kpi-lbl {
+  font-family: var(--fh); font-weight: 700; font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-dim); margin-bottom: 3px;
+}
+.res-kpi-val {
+  font-family: var(--fb); font-weight: 700; font-size: 15px;
+  line-height: 1.1;
+}
+
+/* ── PDF PRINT ── */
+@media print {
+  body { background: white !important; }
+  .nav, .sidebar, .summary-bar, .toast { display: none !important; }
+  .page-scroll#page-resumen { display: block !important; height: auto !important; overflow: visible !important; }
+  .res-wrap { padding: 0 !important; }
+  .res-filter-bar { display: none !important; }
+  .res-page-break { page-break-after: always; }
+  .res-card { border: 1px solid #ccc !important; break-inside: avoid; }
+  .res-grid { gap: 12px !important; }
+  @page { margin: 1.5cm; size: A4 landscape; }
+}
+
+/* ── MISC ── */
+.toast { position:fixed; bottom:80px; right:32px; z-index:999; background:var(--text); color:var(--white); font-size:15px; font-weight:500; padding:11px 20px; border-radius:var(--radius); opacity:0; transform:translateY(6px); pointer-events:none; transition:all 0.22s; }
+.toast.show { opacity:1; transform:translateY(0); }
+.toast.ok { background:var(--in-color); }
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-thumb { background:var(--border-med); border-radius:3px; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- ── NAV ────────────────────────────────────────── -->
+<nav class="nav">
+  <div class="nav-brand">Traxion</div>
+  <span class="nav-sub">Logística y Tecnología</span>
+  <div class="nav-div"></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active"    id="tab-forecast"    onclick="switchTab('forecast')">Forecast</button>
+    <button class="nav-tab real-tab"  id="tab-real"        onclick="switchTab('real')">Real</button>
+    <button class="nav-tab"           id="tab-consolidado" onclick="switchTab('consolidado')">Consolidado</button>
+    <button class="nav-tab"           id="tab-comparativo" onclick="switchTab('comparativo')">Comparativo</button>
+    <button class="nav-tab"           id="tab-resumen"     onclick="switchTab('resumen')">Resumen</button>
+  </div>
+  <div class="nav-spacer"></div>
+  <span class="nav-date" id="nav-date"></span>
+  <span class="badge-live">● En vivo</span>
+  <button class="btn-ghost"   onclick="exportCSV()">Exportar</button>
+  <button class="btn-primary" onclick="saveAll()">Guardar</button>
+</nav>
+
+<!-- ── FORECAST TAB ────────────────────────────────── -->
+<div class="page active" id="page-forecast">
+  <aside class="sidebar" id="sb-forecast">
+    <div class="sb-section">
+      <div class="sb-label">Empresas</div>
+      <div id="co-list-forecast"></div>
+    </div>
+    <div class="sb-section" id="sb-wks-forecast" style="display:none;">
+      <div class="sb-label">Semanas</div>
+      <div id="wk-list-forecast"></div>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-label">Progreso forecast</div>
+      <div class="prog-outer"><div class="prog-inner" id="prog-forecast" style="width:0%"></div></div>
+      <div class="prog-text" id="prog-text-forecast">0 / 0 semanas</div>
+    </div>
+  </aside>
+  <div class="content" id="content-forecast">
+    <div class="empty-state" id="empty-forecast">
+      <div class="empty-logo">F</div>
+      <div class="empty-title">Forecast — Captura de proyecciones</div>
+      <div style="font-size:15px;">Selecciona una empresa para comenzar</div>
+    </div>
+    <div id="area-forecast" style="display:none;flex-direction:column;">
+      <div class="co-header">
+        <div class="hdr-top">
+          <div><div class="hdr-title" id="hdr-title-f">—</div><div class="hdr-sub" id="hdr-sub-f"></div></div>
+          <div id="hdr-pills-f" class="hdr-pills"></div>
+        </div>
+        <div class="week-tabs" id="week-tabs-f" style="display:none;"></div>
+      </div>
+      <div id="guide-f"></div>
+      <div id="wk-picker-f" class="wk-picker"></div>
+      <div id="comment-area-f"></div>
+      <div class="grid-wrap" id="grid-f"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── REAL TAB ───────────────────────────────────── -->
+<div class="page" id="page-real">
+  <aside class="sidebar" id="sb-real">
+    <div class="sb-section">
+      <div class="sb-label">Empresas</div>
+      <div id="co-list-real"></div>
+    </div>
+    <div class="sb-section" id="sb-wks-real" style="display:none;">
+      <div class="sb-label">Semanas</div>
+      <div id="wk-list-real"></div>
+    </div>
+    <div class="sb-progress">
+      <div class="sb-label">Progreso real</div>
+      <div class="prog-outer"><div class="prog-inner" id="prog-real" style="width:0%;background:linear-gradient(90deg,var(--real-color),#A066E0)"></div></div>
+      <div class="prog-text" id="prog-text-real">0 / 0 semanas</div>
+    </div>
+  </aside>
+  <div class="content" id="content-real">
+    <div class="empty-state" id="empty-real">
+      <div class="empty-logo" style="color:var(--real-color);">R</div>
+      <div class="empty-title">Real — Captura de cifras reales</div>
+      <div style="font-size:15px;">Ingresa los valores que ya ocurrieron</div>
+    </div>
+    <div id="area-real" style="display:none;flex-direction:column;">
+      <div class="co-header">
+        <div class="hdr-top">
+          <div><div class="hdr-title" id="hdr-title-r" style="color:var(--real-color);">—</div><div class="hdr-sub" id="hdr-sub-r"></div></div>
+          <div id="hdr-pills-r" class="hdr-pills"></div>
+        </div>
+        <div class="week-tabs" id="week-tabs-r" style="display:none;"></div>
+      </div>
+      <div id="guide-r"></div>
+      <div id="wk-picker-r" class="wk-picker"></div>
+      <div class="grid-wrap" id="grid-r"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONSOLIDADO TAB ────────────────────────────── -->
+<div class="page-scroll" id="page-consolidado">
+  <div class="cons-wrap">
+    <div class="cons-filter-bar">
+      <div class="cons-filter-title">Empresas incluidas</div>
+      <div class="cons-co-chips" id="cons-chips"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Saldo final de banco por semana</div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--lime-dark);"></div>Forecast</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--real-color);"></div>Real (semanas capturadas)</div>
+      </div>
+      <canvas id="saldo-chart" style="width:100%;max-height:260px;"></canvas>
+    </div>
+    <div class="cons-scenario-panel">
+      <div class="scen-matrix-card">
+        <div class="scen-matrix-hdr" onclick="toggleScenMatrix()">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="sliders-title" style="margin-bottom:0;">Ajuste de escenarios por empresa</span>
+            <span id="scen-matrix-summary" style="font-size:13px;color:var(--text-dim);font-family:var(--fb);font-weight:400;"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <button class="reset-all-btn" onclick="event.stopPropagation();resetAllSliders()">Resetear todo</button>
+            <span id="scen-matrix-toggle" style="font-size:20px;color:var(--text-dim);line-height:1;">▼</span>
+          </div>
+        </div>
+        <div id="scen-matrix-body" style="display:none;">
+          <div style="overflow-x:auto;">
+            <div id="scen-matrix-table"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="breakdown-card">
+      <div class="breakdown-title">Detalle por rubro y empresa</div>
+      <!-- Filters -->
+      <div class="bk-filters">
+        <div class="bk-filter-group">
+          <div class="bk-filter-label">Mes</div>
+          <div class="bk-week-chips" id="bk-week-chips"></div>
+        </div>
+        <div class="bk-filter-group" id="bk-week-row-wrap" style="padding-left:0;">
+          <div class="bk-filter-label">Semana</div>
+          <div class="bk-week-chips" id="bk-week-row"></div>
+        </div>
+        <div class="bk-filter-group">
+          <div class="bk-filter-label">Empresas</div>
+          <div class="bk-co-chips" id="bk-co-chips"></div>
+        </div>
+      </div>
+      <div style="overflow-x:auto; margin-top:16px;"><div id="breakdown-table"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── COMPARATIVO TAB ────────────────────────────── -->
+<div class="page-scroll" id="page-comparativo">
+  <div class="cmp-wrap">
+    <div class="cmp-filter-bar">
+      <div>
+        <div class="cmp-filter-title">Empresas</div>
+        <div class="cmp-co-chips" id="cmp-chips"></div>
+      </div>
+      <div style="width:1px;background:var(--border);flex-shrink:0;align-self:stretch;"></div>
+      <div style="flex:1;">
+        <div class="cmp-filter-title">Semana a comparar</div>
+        <div id="cmp-week-chips" style="display:flex;flex-wrap:wrap;gap:5px;"></div>
+      </div>
+    </div>
+    <!-- Accuracy KPI bar -->
+    <div id="cmp-accuracy-bar" style="display:none; margin-bottom:16px;"></div>
+    <div style="overflow-x:auto;">
+      <div id="cmp-table-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── RESUMEN TAB ────────────────────────────────── -->
+<div class="page-scroll" id="page-resumen">
+  <div class="res-wrap">
+    <div class="res-filter-bar">
+      <div style="display:flex;align-items:center;gap:12px;flex:1;flex-wrap:wrap;">
+        <div>
+          <div class="sb-label" style="margin-bottom:6px;">Semana</div>
+          <div id="res-week-chips"></div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="exportResumenPDF()" style="flex-shrink:0;">
+        ↓ Exportar PDF
+      </button>
+    </div>
+    <div id="res-content"></div>
+  </div>
+</div>
+
+<!-- SUMMARY BARS -->
+<div class="summary-bar" id="sumbar-f">
+  <div class="kpi-block"><div class="kpi-lbl">Semana</div><div class="kpi-val lime" id="k-f-week">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Saldo inicial</div><div class="kpi-val blue" id="k-f-ini">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Total ingresos</div><div class="kpi-val pos" id="k-f-in">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Total egresos</div><div class="kpi-val neg" id="k-f-out">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Flujo neto</div><div class="kpi-val" id="k-f-neto">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Saldo final</div><div class="kpi-val" id="k-f-fin">—</div></div>
+</div>
+<div class="summary-bar real-bar" id="sumbar-r">
+  <div class="kpi-block"><div class="kpi-lbl">Semana</div><div class="kpi-val real" id="k-r-week">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Saldo inicial</div><div class="kpi-val blue" id="k-r-ini">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Total ingresos</div><div class="kpi-val pos" id="k-r-in">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Total egresos</div><div class="kpi-val neg" id="k-r-out">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Flujo neto</div><div class="kpi-val" id="k-r-neto">—</div></div>
+  <div class="kpi-block"><div class="kpi-lbl">Saldo final</div><div class="kpi-val" id="k-r-fin">—</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Suppress cross-origin script errors from CDNs (harmless in preview environments)
+window.addEventListener('error', function(e) {
+  if (e.message === 'Script error.' || e.message === 'Script error') {
+    e.preventDefault(); e.stopPropagation(); return false;
+  }
+}, true);
+
+// ── CONSTANTS ──────────────────────────────────────────────────────────────
+const COMPANIES = [
+  {id:'c1',  name:'Solistica TM',  short:'STM'},
+  {id:'c2',  name:'Solistica DCC', short:'DCC'},
+  {id:'c3',  name:'Solistica CL',  short:'SCL'},
+  {id:'c4',  name:'Medistik',      short:'MED'},
+  {id:'c5',  name:'Ecommerce XB',  short:'EXB'},
+  {id:'c6',  name:'RedPack',       short:'RPK'},
+  {id:'c7',  name:'VModal',        short:'VMD'},
+  {id:'c8',  name:'Farma',         short:'FAR'},
+  {id:'c9',  name:'SID',           short:'SID'},
+  {id:'c10', name:'TXP XB',        short:'TXP'},
+];
+
+const ROWS = [
+  {id:'saldo_ini',   label:'Saldo inicial',           hint:'Posición bancaria al inicio',        section:'pos', computed:true},
+  {id:'cobranza',    label:'Cobranza',                hint:'Cobros de clientes proyectados',     section:'in'},
+  {id:'ing_fin',     label:'Ingresos financieros',    hint:'Intereses, rendimientos',            section:'in'},
+  {id:'otros_ing',   label:'Otros ingresos',          hint:'Devoluciones IVA, activos, etc.',   section:'in'},
+  {id:'prov_crit',   label:'Proveedores críticos',    hint:'Pagos no diferibles',               section:'out'},
+  {id:'prov_no_crit',label:'Proveedores no críticos', hint:'Diferibles si aplica',              section:'out'},
+  {id:'interco',     label:'Intercompañías',          hint:'Pagos a otras entidades del grupo', section:'out'},
+  {id:'nominas',     label:'Nóminas',                 hint:'Nómina, comisiones, IMSS',         section:'out'},
+  {id:'impuestos',   label:'Impuestos',               hint:'ISR, IVA, IMSS, INFONAVIT',        section:'out'},
+  {id:'gasto_fin',   label:'Gastos financieros',      hint:'Intereses, comisiones bancarias',   section:'out'},
+  {id:'capex',       label:'CAPEX',                   hint:'Inversión en activos fijos',        section:'out'},
+  {id:'corporativo', label:'Corporativo',              hint:'Cargos corporativos / holding',      section:'out'},
+  {id:'otros_egr',   label:'Otros egresos',            hint:'Otros',                             section:'out'},
+  {id:'saldo_fin',   label:'Saldo final',             hint:'Calculado automáticamente',         section:'pos', computed:true},
+];
+
+const IN_ROWS  = ['cobranza','ing_fin','otros_ing'];
+const OUT_ROWS = ['prov_crit','prov_no_crit','interco','nominas','impuestos','gasto_fin','capex','corporativo','otros_egr'];
+
+// Generate all weeks of the current year (S1–S52/53)
+function getWeeks() {
+  const weeks = [];
+  const now = new Date();
+  const year = now.getFullYear();
+
+  // ISO Week 1 Monday: Monday of the week containing Jan 4
+  const jan4 = new Date(year, 0, 4);
+  const w1Mon = new Date(jan4);
+  w1Mon.setDate(jan4.getDate() - (jan4.getDay() === 0 ? 6 : jan4.getDay() - 1));
+  w1Mon.setHours(0, 0, 0, 0);
+
+  // Generate until we cross into next year's ISO week 1
+  let s = new Date(w1Mon);
+  let idx = 1;
+  while (true) {
+    const e = new Date(s); e.setDate(s.getDate() + 4);
+    const p = d => d.toString().padStart(2, '0');
+    const f = d => `${p(d.getDate())}/${p(d.getMonth()+1)}`;
+    const mo = s.toLocaleString('es', { month: 'short' });
+    // ISO week number
+    const jan4y = new Date(s.getFullYear(), 0, 4);
+    const w1start = new Date(jan4y);
+    w1start.setDate(jan4y.getDate() - (jan4y.getDay() || 7) + 1);
+    const iso = Math.round((s - w1start) / (7 * 864e5)) + 1;
+    // Stop when we roll into next year's week 1 (iso resets to 1 and we've already added weeks)
+    if (idx > 1 && iso === 1) break;
+    weeks.push({
+      id: `w${idx}`,
+      label: `S${iso}`,
+      isoWeek: iso,
+      range: `${f(s)}–${f(e)}`,
+      month: mo[0].toUpperCase() + mo.slice(1),
+      startDate: new Date(s),
+    });
+    s.setDate(s.getDate() + 7);
+    idx++;
+  }
+  return weeks;
+}
+const WEEKS = getWeeks();
+
+// Real tab uses the same 13 weeks as Forecast.
+// Weeks that haven't started yet are locked (no editing).
+function getRealWeeks() {
+  const now = new Date();
+  now.setHours(0,0,0,0);
+  const curMon = new Date(now);
+  const dow = now.getDay();
+  curMon.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  return WEEKS.map(w => {
+    const isCurrent = w.startDate.toDateString() === curMon.toDateString();
+    return { ...w, id: 'r_' + w.id, isPast: true, isCurrent, locked: false };
+  });
+}
+const REAL_WEEKS = getRealWeeks();
+
+// ── STORAGE ────────────────────────────────────────────────────────────────
+const SK = 'traxion_v2';
+let FDB = {}, RDB = {}, CDB = {};  // forecast, real, comments (by cid+wid)
+let FLAST = {}, RLAST = {};
+let showGuideF = true, showGuideR = true;
+
+function loadData() {
+  try {
+    const s = localStorage.getItem(SK);
+    if (!s) return;
+    const p = JSON.parse(s);
+    FDB = p.fdb || {}; RDB = p.rdb || {}; CDB = p.cdb || {};
+    FLAST = p.flast || {}; RLAST = p.rlast || {};
+    showGuideF = p.sgf !== false; showGuideR = p.sgr !== false;
+  } catch(e) {}
+}
+function saveData() {
+  localStorage.setItem(SK, JSON.stringify({fdb:FDB, rdb:RDB, cdb:CDB, flast:FLAST, rlast:RLAST, sgf:showGuideF, sgr:showGuideR}));
+}
+
+function getComment(cid, wid) { return CDB[cid]?.[wid] || ''; }
+function setComment(cid, wid, txt) {
+  if (!CDB[cid]) CDB[cid] = {};
+  CDB[cid][wid] = txt;
+}
+
+function getF(cid,wid,rid) { return FDB[cid]?.[wid]?.[rid] || {v:'',n:'',c:''}; }
+// Real IDs use 'r_w1' prefix — strip it for storage so keys match forecast week IDs
+const rKey = wid => wid.startsWith('r_') ? wid.slice(2) : wid;
+function getR(cid,wid,rid) { return RDB[cid]?.[rKey(wid)]?.[rid] || {v:'',n:''}; }
+function setF(cid,wid,rid,field,val) {
+  if(!FDB[cid]) FDB[cid]={}; if(!FDB[cid][wid]) FDB[cid][wid]={};
+  if(!FDB[cid][wid][rid]) FDB[cid][wid][rid]={v:'',n:'',c:''};
+  FDB[cid][wid][rid][field]=val;
+}
+function setR(cid,wid,rid,field,val) {
+  const k=rKey(wid);
+  if(!RDB[cid]) RDB[cid]={}; if(!RDB[cid][k]) RDB[cid][k]={};
+  if(!RDB[cid][k][rid]) RDB[cid][k][rid]={v:'',n:''};
+  RDB[cid][k][rid][field]=val;
+}
+
+// ── MATH ───────────────────────────────────────────────────────────────────
+const pn = v => parseFloat(String(v||'').replace(/[$,\s]/g,'')) || 0;
+
+function totalsF(cid,wid) {
+  const g = r => pn(getF(cid,wid,r).v);
+  const ini=g('saldo_ini'), totalIn=g('cobranza')+g('ing_fin')+g('otros_ing');
+  const totalOut=g('prov_crit')+g('prov_no_crit')+g('interco')+g('nominas')+g('impuestos')+g('gasto_fin')+g('capex')+g('otros_egr');
+  return {ini, totalIn, totalOut, neto:totalIn-totalOut, fin:ini+totalIn-totalOut};
+}
+function totalsR(cid,wid) {
+  const g = r => pn(getR(cid,wid,r).v); // getR already applies rKey internally
+  const ini=g('saldo_ini'), totalIn=g('cobranza')+g('ing_fin')+g('otros_ing');
+  const totalOut=g('prov_crit')+g('prov_no_crit')+g('interco')+g('nominas')+g('impuestos')+g('gasto_fin')+g('capex')+g('otros_egr');
+  return {ini, totalIn, totalOut, neto:totalIn-totalOut, fin:ini+totalIn-totalOut};
+}
+
+function fmt(n) {
+  if (n===0||isNaN(n)) return '—';
+  const abs=Math.abs(n);
+  let s = abs>=1e6 ? (abs/1e6).toFixed(2)+'M' : abs>=1e3 ? (abs/1e3).toFixed(1)+'K' : abs.toLocaleString('es-MX',{minimumFractionDigits:0});
+  return (n<0?'-':'')+'$'+s;
+}
+function fmtPct(n) {
+  if (isNaN(n)||!isFinite(n)) return '—';
+  return (n>=0?'+':'')+n.toFixed(1)+'%';
+}
+function fmtTs(iso) {
+  if (!iso) return null;
+  const d=new Date(iso);
+  return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── STATUS ─────────────────────────────────────────────────────────────────
+function wkStatusF(cid,wid) {
+  const keys=['cobranza','prov_crit','nominas'];
+  const f=keys.filter(r=>pn(getF(cid,wid,r).v)!==0).length;
+  return f===keys.length?'done':f>0?'partial':'';
+}
+function wkStatusR(cid,wid) {
+  const keys=['cobranza','prov_crit','nominas'];
+  const f=keys.filter(r=>pn(getR(cid,wid,r).v)!==0).length;
+  return f===keys.length?'real':f>0?'partial':'';
+}
+
+// ── ACTIVE STATE ───────────────────────────────────────────────────────────
+// Set default active weeks to current week
+function getCurrentWeekId(pool) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const dow = now.getDay();
+  const curMon = new Date(now);
+  curMon.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1));
+  // Find the week whose startDate matches current Monday, or fallback to first
+  const found = pool.find(w => w.startDate.toDateString() === curMon.toDateString());
+  return found ? found.id : pool[0].id;
+}
+
+let activeTab='forecast';
+let activeFCo=null, activeFWk=null;
+let activeRCo=null, activeRWk=null;
+let bkWeek=null, bkCos=new Set(COMPANIES.map(c=>c.id)); // consolidado breakdown filters
+
+// Helper: get week object from either WEEKS or REAL_WEEKS by id
+function getWeekObj(wid) {
+  return WEEKS.find(w=>w.id===wid) || REAL_WEEKS.find(w=>w.id===wid);
+}
+
+// Set default active weeks to current week
+activeFWk = getCurrentWeekId(WEEKS);
+activeRWk = getCurrentWeekId(REAL_WEEKS);
+bkWeek    = getCurrentWeekId(WEEKS);
+
+// ── TAB SWITCHING ──────────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  ['forecast','real','consolidado','comparativo','resumen'].forEach(t => {
+    const p = document.getElementById('page-'+t);
+    if (p) { p.classList.remove('active'); }
+  });
+  const pg = document.getElementById('page-'+tab);
+  if (pg) pg.classList.add('active');
+  ['tab-forecast','tab-real','tab-consolidado','tab-comparativo','tab-resumen'].forEach(id => {
+    document.getElementById(id)?.classList.remove('active');
+  });
+  document.getElementById('tab-'+tab)?.classList.add('active');
+
+  document.getElementById('sumbar-f').style.display = (tab==='forecast' && activeFCo) ? 'flex' : 'none';
+  document.getElementById('sumbar-r').style.display = (tab==='real'     && activeRCo) ? 'flex' : 'none';
+
+  if (tab==='consolidado') renderConsolidado();
+  if (tab==='comparativo') renderComparativo();
+  if (tab==='resumen')     renderResumen();
+}
+
+// ── SIDEBAR RENDER ─────────────────────────────────────────────────────────
+function renderSidebar(mode) {
+  const isF   = mode==='forecast';
+  const db    = isF ? FDB : RDB;
+  const actCo = isF ? activeFCo : activeRCo;
+  const actWk = isF ? activeFWk : activeRWk;
+  const stFn  = isF ? wkStatusF : wkStatusR;
+  const sfx   = isF ? 'forecast' : 'real';
+  const last  = isF ? FLAST : RLAST;
+
+  const coListEl = document.getElementById('co-list-'+sfx);
+  coListEl.innerHTML = COMPANIES.map(c => {
+    const doneWks = WEEKS.filter(w => stFn(c.id,w.id)===(isF?'done':'real')).length;
+    const isAct   = c.id === actCo;
+    const ts      = fmtTs(last[c.id]);
+    const activeClass = isF ? 'active' : 'real-active';
+    return `<button class="co-btn${isAct?' '+activeClass:''}" onclick="selectCo('${sfx}','${c.id}')">
+      <div class="co-avatar">${c.short}</div>
+      <div style="min-width:0;flex:1;">
+        <div class="co-name">${c.name}</div>
+        <div class="co-meta${doneWks===WEEKS.length?' done':''}">${doneWks}/${WEEKS.length} sem.</div>
+        <div class="datestamp${ts?' saved':''}"><span class="ds-dot"></span>${ts||'Sin guardar'}</div>
+      </div>
+    </button>`;
+  }).join('');
+
+  const wkSection = document.getElementById('sb-wks-'+sfx);
+  if (actCo) {
+    wkSection.style.display='block';
+    const wkList = isF ? WEEKS : REAL_WEEKS;
+    document.getElementById('wk-list-'+sfx).innerHTML = wkList.map(w => {
+      const st = stFn(actCo,w.id);
+      const dotCls = st==='done'?' done':st==='real'?' real':st==='partial'?' partial':'';
+      const itmCls = w.id===actWk ? (isF?' active':' real-active') : '';
+      const lockedStyle = (!isF && w.locked) ? 'opacity:0.38;pointer-events:none;' : '';
+      const curBadge = (!isF && w.isCurrent) ? ' <span style="font-size:9px;color:var(--real-color);font-family:var(--fh);font-weight:700;"> EN CURSO</span>' : '';
+      const lockIcon = (!isF && w.locked) ? ' <span style="font-size:9px;color:var(--text-dim);">🔒</span>' : '';
+      return `<div class="wk-item${itmCls}" onclick="${(!isF && w.locked) ? '' : `selectWk('${sfx}','${w.id}')`}" style="${lockedStyle}">
+        <div><div class="wk-lbl">${w.label}${curBadge}${lockIcon}</div><div class="wk-rng">${w.range}</div></div>
+        <div class="wk-dot${dotCls}"></div>
+      </div>`;
+    }).join('');
+  } else { wkSection.style.display='none'; }
+
+  // progress
+  const wkPool = isF ? WEEKS : REAL_WEEKS;
+  let done=0;
+  COMPANIES.forEach(c => { wkPool.forEach(w => { if(stFn(c.id,w.id)===(isF?'done':'real')) done++; }); });
+  const total = COMPANIES.length * wkPool.length;
+  const pct   = Math.round((done/total)*100);
+  document.getElementById('prog-'+sfx).style.width = pct+'%';
+  document.getElementById('prog-text-'+sfx).textContent = `${done} / ${total} semanas`;
+}
+
+// ── MONTHLY ACCUMULATION ───────────────────────────────────────────────────
+function weeksOfMonth(wid) {
+  const wk = getWeekObj(wid); if (!wk) return [];
+  return WEEKS.filter(w => w.month === wk.month);
+}
+
+// Weeks of month UP TO AND INCLUDING the current week
+function weeksOfMonthUpTo(wid) {
+  const wk = getWeekObj(wid); if (!wk) return [];
+  const monthWks = WEEKS.filter(w => w.month === wk.month);
+  const idx = monthWks.findIndex(w => w.id === wid);
+  return idx >= 0 ? monthWks.slice(0, idx + 1) : monthWks;
+}
+
+// Sum of a flow rubro — only up to current week in the month
+function acumMes(cid, wid, rid) {
+  return weeksOfMonthUpTo(wid).reduce((s, w) => s + pn(getF(cid, w.id, rid).v), 0);
+}
+
+// Saldo inicial del mes = saldo_ini of the FIRST week of the month
+function acumSaldoIni(cid, wid) {
+  const wks = weeksOfMonth(wid);
+  if (!wks.length) return 0;
+  return pn(getF(cid, wks[0].id, 'saldo_ini').v);
+}
+
+// Saldo final del mes = saldo_fin of the last week UP TO current that has data
+function acumSaldoFin(cid, wid) {
+  const wks = weeksOfMonthUpTo(wid);
+  for (let i = wks.length - 1; i >= 0; i--) {
+    const T = totalsF(cid, wks[i].id);
+    if (T.totalIn !== 0 || T.totalOut !== 0 || T.ini !== 0) return T.fin;
+  }
+  return 0;
+}
+
+// Acum totals for subtotal rows — only up to current week
+function acumTotals(cid, wid) {
+  const wks = weeksOfMonthUpTo(wid);
+  const totalIn  = wks.reduce((s,w) => s + IN_ROWS.reduce((ss,r)  => ss + pn(getF(cid,w.id,r).v), 0), 0);
+  const totalOut = wks.reduce((s,w) => s + OUT_ROWS.reduce((ss,r) => ss + pn(getF(cid,w.id,r).v), 0), 0);
+  return { totalIn, totalOut, neto: totalIn - totalOut };
+}
+// State: which month is expanded per mode
+const pickerExpandedMonth = { forecast: null, real: null };
+
+function renderWeekPicker(mode) {
+  const isF   = mode === 'forecast';
+  const actCo = isF ? activeFCo : activeRCo;
+  const actWk = isF ? activeFWk : activeRWk;
+  const sfx   = isF ? 'f' : 'r';
+  const pool  = isF ? WEEKS : REAL_WEEKS;
+  const el    = document.getElementById('wk-picker-' + sfx);
+  if (!el || !actCo) { if(el) el.innerHTML=''; return; }
+
+  // Figure out which months exist in the pool
+  const months = {};
+  pool.forEach(w => {
+    const key = w.month;
+    if (!months[key]) months[key] = [];
+    months[key].push(w);
+  });
+
+  // Auto-expand the month of the active week
+  const activeWkObj = pool.find(w => w.id === actWk);
+  if (activeWkObj && !pickerExpandedMonth[mode]) {
+    pickerExpandedMonth[mode] = activeWkObj.month;
+  }
+  const expMonth = pickerExpandedMonth[mode];
+
+  let html = '';
+
+  // Row 1: Month pills
+  html += `<div class="wk-picker-row">
+    <span class="wk-picker-label">Mes</span>`;
+  Object.keys(months).forEach(mo => {
+    const isActive = mo === expMonth;
+    const hasData  = months[mo].some(w => {
+      const st = isF ? wkStatusF(actCo,w.id) : wkStatusR(actCo,w.id);
+      return st === 'done' || st === 'real' || st === 'partial';
+    });
+    html += `<button class="wk-pill${isActive?' active':''} ${hasData?'filled':''}"
+      onclick="togglePickerMonth('${mode}','${mo}')">${mo}</button>`;
+  });
+  html += `</div>`;
+
+  // Row 2: Week pills for expanded month
+  if (expMonth && months[expMonth]) {
+    html += `<div class="wk-picker-row" style="padding-bottom:10px;">
+      <span class="wk-picker-label">Semana</span>`;
+    months[expMonth].forEach(w => {
+      const st      = isF ? wkStatusF(actCo,w.id) : wkStatusR(actCo,w.id);
+      const isAct   = w.id === actWk;
+      const filled  = isF ? (st==='done'?' filled':'') : (st==='real'?' real-filled':'');
+      const actCls  = isAct ? (isF?' active':' real-active') : '';
+      const curCls  = w.isCurrent ? ' cur' : '';
+      const locked  = (!isF && w.locked) ? true : false;
+      html += `<button class="wk-pill${actCls}${filled}${curCls}"
+        ${locked ? 'disabled style="opacity:0.35;cursor:default;"' : ''}
+        onclick="selectWk('${mode}','${w.id}')"
+        title="${w.range}">${w.label} <span style="font-size:9px;font-weight:400;opacity:0.75;">${w.range}</span></button>`;
+    });
+    html += `</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function togglePickerMonth(mode, month) {
+  pickerExpandedMonth[mode] = pickerExpandedMonth[mode] === month ? null : month;
+  renderWeekPicker(mode);
+}
+
+// ── CONTENT RENDER ─────────────────────────────────────────────────────────
+function renderContent(mode) {
+  const isF   = mode==='forecast';
+  const actCo = isF ? activeFCo : activeRCo;
+  const actWk = isF ? activeFWk : activeRWk;
+  const sfx   = isF ? 'f' : 'r';
+  const last  = isF ? FLAST : RLAST;
+  const co    = COMPANIES.find(c=>c.id===actCo);
+  const wk    = getWeekObj(actWk);
+
+  document.getElementById('empty-'+mode).style.display  = actCo ? 'none' : 'flex';
+  document.getElementById('area-'+mode).style.display   = actCo ? 'flex' : 'none';
+  document.getElementById('sumbar-'+sfx).style.display  = (actCo && activeTab===mode) ? 'flex' : 'none';
+  if (!actCo) return;
+
+  const ts = fmtTs(last[actCo]);
+  const curBadge = (!isF && wk?.isCurrent) ? ' · <span style="color:var(--real-color);font-weight:700;">Semana en curso</span>' : '';
+  document.getElementById('hdr-title-'+sfx).textContent = co.name;
+  document.getElementById('hdr-sub-'+sfx).innerHTML = `${isF?'Forecast':'Real'} semanal · ${wk?.label} · ${wk?.range} · ${wk?.month}${curBadge}`;
+  document.getElementById('hdr-pills-'+sfx).innerHTML =
+    `<span class="hdr-pill${isF?'':' real'}">${co.short} · ${co.name}</span>
+     <span class="hdr-pill teal">${wk?.label} · ${wk?.range}</span>
+     <span style="font-size:11px;color:${ts?'var(--in-color)':'var(--text-dim)'};">● ${ts?'Guardado: '+ts:'Sin guardar'}</span>`;
+
+  renderWeekPicker(mode);
+  if (isF) renderCommentArea(actCo, actWk);
+  const gWrap = document.getElementById('guide-'+sfx);
+  const showG = isF ? showGuideF : showGuideR;
+  if (showG) {
+    gWrap.innerHTML = `<div class="guide${isF?'':' real-guide'}">
+      <span>${isF?'💡':'📌'}</span>
+      <span>${isF
+        ? '<strong>Forecast:</strong> Ingresa proyecciones en MXN. Saldo inicial/final se calculan solos.'
+        : '<strong>Real:</strong> Solo semanas ya ocurridas o en curso. Ingresa cifras reales confirmadas en MXN. El saldo final se calcula automáticamente. Las semanas futuras están bloqueadas.'
+      }</span>
+      <button class="guide-close" onclick="closeGuide('${mode}')">✕</button>
+    </div>`;
+  } else { gWrap.innerHTML=''; }
+
+  // Propagate saldo_ini from prev week
+  const wkPool2 = isF ? WEEKS : REAL_WEEKS;
+  const wIdx = wkPool2.findIndex(w=>w.id===actWk);
+  if (wIdx > 0) {
+    const prevWk = wkPool2[wIdx-1].id;
+    if (isF) {
+      const prev = totalsF(actCo,prevWk);
+      if (prev.fin!==0) setF(actCo,actWk,'saldo_ini','v',prev.fin.toFixed(2));
+    } else {
+      const prev = totalsR(actCo,prevWk);
+      if (prev.fin!==0) setR(actCo,actWk,'saldo_ini','v',prev.fin.toFixed(2));
+    }
+  }
+
+  renderGrid(mode);
+}
+
+function renderGrid(mode) {
+  const isF   = mode==='forecast';
+  const cid   = isF ? activeFCo : activeRCo;
+  const wid   = isF ? activeFWk : activeRWk;
+  const sfx   = isF ? 'f' : 'r';
+  const T     = isF ? totalsF(cid,wid) : totalsR(cid,wid);
+  const wk    = getWeekObj(wid);
+
+  // Locked week in Real mode — show placeholder
+  if (!isF && wk?.locked) {
+    document.getElementById('grid-'+sfx).innerHTML = `
+      <div style="padding:60px;text-align:center;color:var(--text-dim);">
+        <div style="font-size:28px;margin-bottom:12px;">🔒</div>
+        <div style="font-family:var(--fh);font-weight:700;font-size:16px;color:var(--text-muted);">Semana aún no iniciada</div>
+        <div style="font-size:12px;margin-top:6px;">${wk.label} · ${wk.range} — disponible a partir del ${wk.range.split('–')[0]}</div>
+      </div>`;
+    return;
+  }
+
+  let html = `<div class="col-hdrs">
+    <div class="col-hdr">Concepto</div>
+    <div class="col-hdr" style="text-align:right;">Monto (MXN)</div>
+    <div class="col-hdr" style="padding-left:14px;">Notas</div>
+    <div class="col-hdr" style="text-align:right;padding-right:12px;">Acum. mes</div>
+  </div>`;
+
+  // Acum helpers for Real tab
+  // Real weeks up to and including current week in the month
+  const realWksUpTo = () => {
+    const aw = getWeekObj(wid); if(!aw) return [];
+    const monthWks = REAL_WEEKS.filter(w => w.month === aw.month);
+    const idx = monthWks.findIndex(w => w.id === wid);
+    return idx >= 0 ? monthWks.slice(0, idx + 1) : monthWks;
+  };
+
+  const acumR = (rid) => realWksUpTo()
+    .reduce((s,w) => s + pn(getR(cid,w.id,rid).v), 0);
+
+  const acumSaldoIniR = () => {
+    const aw = getWeekObj(wid); if(!aw) return 0;
+    const wks = REAL_WEEKS.filter(w=>w.month===aw.month);
+    return wks.length ? pn(getR(cid,wks[0].id,'saldo_ini').v) : 0;
+  };
+  const acumSaldoFinR = () => {
+    const wks = realWksUpTo();
+    for (let i=wks.length-1; i>=0; i--) {
+      const T2=totalsR(cid,wks[i].id);
+      if(T2.totalIn!==0||T2.totalOut!==0||T2.ini!==0) return T2.fin;
+    }
+    return 0;
+  };
+  const acumTotalsR = () => {
+    const wks = realWksUpTo();
+    const totalIn  = wks.reduce((s,w)=>s+IN_ROWS.reduce((ss,r)=>ss+pn(getR(cid,w.id,r).v),0),0);
+    const totalOut = wks.reduce((s,w)=>s+OUT_ROWS.reduce((ss,r)=>ss+pn(getR(cid,w.id,r).v),0),0);
+    return {totalIn,totalOut,neto:totalIn-totalOut};
+  };
+
+  let prevSec=null;
+  ROWS.forEach(row => {
+    if (row.section!==prevSec) {
+      prevSec=row.section;
+      if (row.id==='saldo_ini') {
+        html+=`<div class="sec-head"><span class="sec-tag pos">Posición de caja</span><div class="sec-line"></div></div>`;
+      } else if (row.id==='cobranza') {
+        html+=`<div class="sec-head"><span class="sec-tag${isF?'':' real-tag'} in">Ingresos</span><div class="sec-line"></div></div>`;
+      } else if (row.id==='saldo_fin') {
+        const acT = isF ? acumTotals(cid,wid) : acumTotalsR();
+        html+=`<div class="subtotal-row"><span class="subtotal-lbl">Total egresos</span>
+          <span class="subtotal-val ${T.totalOut>0?'v-neg':'v-muted'}">${fmt(T.totalOut)}</span>
+          <span style="font-size:13px;color:var(--text-dim);margin-left:8px;">· mes: <strong style="color:var(--out-color);">${fmt(acT.totalOut)}</strong></span>
+        </div>`;
+        html+=`<div class="sec-head" style="margin-top:8px;"><span class="sec-tag pos">Saldo resultante</span><div class="sec-line"></div></div>`;
+      }
+    }
+    if (row.id==='prov_crit') {
+      const acT = isF ? acumTotals(cid,wid) : acumTotalsR();
+      html+=`<div class="subtotal-row"><span class="subtotal-lbl">Total ingresos</span>
+        <span class="subtotal-val ${T.totalIn>0?'v-pos':'v-muted'}">${fmt(T.totalIn)}</span>
+        <span style="font-size:13px;color:var(--text-dim);margin-left:8px;">· mes: <strong style="color:var(--in-color);">${fmt(acT.totalIn)}</strong></span>
+      </div>`;
+      html+=`<div class="sec-head"><span class="sec-tag${isF?'':' real-tag'} out">Egresos</span><div class="sec-line"></div></div>`;
+    }
+
+    const cell = isF ? getF(cid,wid,row.id) : getR(cid,wid,row.id);
+
+    if (row.computed) {
+      const val  = row.id==='saldo_ini' ? T.ini : T.fin;
+      const cls  = row.id==='saldo_fin'
+        ? (T.fin>0?(isF?'v-lime':'v-real'):T.fin<0?'v-neg':'v-muted') : 'v-blue';
+      const rcls = row.id==='saldo_fin'
+        ? (isF?'balance-row':'real-balance') : 'saldo-ini-row';
+
+      const acVal = isF
+        ? (row.id==='saldo_ini' ? acumSaldoIni(cid,wid) : acumSaldoFin(cid,wid))
+        : (row.id==='saldo_ini' ? acumSaldoIniR()       : acumSaldoFinR());
+      const acCls = row.id==='saldo_fin'
+        ? (acVal>0?(isF?'v-lime':'v-real'):acVal<0?'v-neg':'v-muted')
+        : 'v-blue';
+      const acHint = row.id==='saldo_ini' ? '1er día del mes' : 'Último día capturado';
+
+      html+=`<div class="row ${rcls}">
+        <div class="row-lbl bold"><div class="row-lbl-name">${row.label}</div><div class="row-lbl-hint">${row.hint}</div></div>
+        <div style="grid-column:2/4;display:flex;align-items:center;justify-content:flex-end;padding-right:20px;">
+          <span class="comp-val ${cls}">${fmt(val)}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;justify-content:center;padding-right:14px;border-left:1px solid var(--border);">
+          <span style="font-family:var(--fh);font-size:15px;font-weight:700;" class="${acCls}">${fmt(acVal)}</span>
+          <span style="font-size:11px;color:var(--text-dim);margin-top:1px;">${acHint}</span>
+        </div>
+      </div>`;
+    } else {
+      const inputCls = isF ? '' : 'real-inp';
+      const rowMode  = isF ? '' : 'real-mode';
+      const ac    = isF ? acumMes(cid,wid,row.id) : acumR(row.id);
+      const acCls = ac > 0
+        ? (row.section==='out' ? 'color:var(--out-color);' : 'color:var(--in-color);')
+        : 'color:var(--text-dim);';
+      const acumCell = `<div class="conf-cell" style="flex-direction:column;align-items:flex-end;justify-content:center;padding-right:14px;gap:2px;">
+        <span style="font-family:var(--fh);font-size:15px;font-weight:700;${acCls}">${ac!==0?fmt(ac):'—'}</span>
+      </div>`;
+
+      html+=`<div class="row ${rowMode}">
+        <div class="row-lbl"><div class="row-lbl-name">${row.label}</div><div class="row-lbl-hint">${row.hint}</div></div>
+        <div class="inp-cell">
+          <input class="forecast-inp ${inputCls}" type="text" inputmode="numeric" placeholder="0.00"
+            value="${fmtInputDisplay(cell.v)}" data-rid="${row.id}" data-mode="${mode}"
+            onfocus="onFocusVal(this)" onblur="onBlurVal(this)"
+            oninput="onVal(this)" onchange="onVal(this)">
+        </div>
+        <div class="notes-cell">
+          <textarea class="notes-inp" rows="2" placeholder="Nota…"
+            data-rid="${row.id}" data-mode="${mode}"
+            onchange="onNote(this)">${cell.n}</textarea>
+        </div>
+        ${acumCell}
+      </div>`;
+    }
+  });
+
+  document.getElementById('grid-'+sfx).innerHTML = html;
+
+  // Update summary bar
+  const barId = 'sumbar-'+sfx;
+  const pre   = 'k-'+sfx+'-';
+  document.getElementById(pre+'week').textContent = `${wk.label} · ${wk.range}`;
+  document.getElementById(pre+'ini').textContent  = fmt(T.ini);
+  document.getElementById(pre+'in').textContent   = fmt(T.totalIn);
+  document.getElementById(pre+'out').textContent  = fmt(T.totalOut);
+  const kn = document.getElementById(pre+'neto');
+  kn.textContent = fmt(T.neto); kn.className='kpi-val '+(T.neto>=0?'pos':'neg');
+  const kf = document.getElementById(pre+'fin');
+  kf.textContent = fmt(T.fin);  kf.className='kpi-val '+(T.fin>0?(isF?'lime':'real'):T.fin<0?'neg':'blue');
+}
+
+// ── INTERACTIONS ───────────────────────────────────────────────────────────
+function selectCo(mode, cid) {
+  if (mode==='forecast') { activeFCo=cid; activeFWk=WEEKS[0].id; }
+  else                   { activeRCo=cid; activeRWk=WEEKS[0].id; }
+  renderSidebar(mode); renderContent(mode);
+}
+function selectWk(mode, wid) {
+  if (mode==='forecast') activeFWk=wid; else activeRWk=wid;
+  renderSidebar(mode); renderContent(mode);
+  renderWeekPicker(mode);
+}
+
+// ── NUMBER FORMAT HELPERS ─────────────────────────────────────────────────
+function fmtInputDisplay(val) {
+  // Format a stored value with thousand separators for display
+  const n = parseFloat(String(val||'').replace(/[,$\s]/g,''));
+  if (!val || val === '' || isNaN(n)) return '';
+  // Keep decimals if present
+  const parts = String(val).replace(/[,$\s]/g,'').split('.');
+  const intPart = parseInt(parts[0] || '0').toLocaleString('es-MX');
+  return parts.length > 1 ? intPart + '.' + parts[1] : intPart;
+}
+
+function onFocusVal(el) {
+  // Strip commas for editing
+  el.value = el.value.replace(/,/g, '');
+  el.select();
+}
+
+function onBlurVal(el) {
+  // Add commas after editing
+  const raw = el.value.replace(/,/g, '');
+  const n = parseFloat(raw);
+  if (!isNaN(n) && raw !== '') {
+    const parts = raw.split('.');
+    el.value = parseInt(parts[0]).toLocaleString('es-MX') + (parts[1] !== undefined ? '.' + parts[1] : '');
+  }
+}
+
+function onVal(el) {
+  const rid=el.dataset.rid, mode=el.dataset.mode;
+  const cid = mode==='forecast' ? activeFCo : activeRCo;
+  const wid = mode==='forecast' ? activeFWk : activeRWk;
+  // Store raw value without commas
+  const raw = el.value.replace(/,/g, '');
+  if (mode==='forecast') setF(cid,wid,rid,'v',raw);
+  else                   setR(cid,wid,rid,'v',raw);
+  renderGrid(mode);
+  setTimeout(()=>{
+    const inp=document.querySelector(`.forecast-inp[data-rid="${rid}"][data-mode="${mode}"]`);
+    if(inp){inp.focus();const l=inp.value.length;inp.setSelectionRange(l,l);}
+  },8);
+}
+function onNote(el) {
+  const mode=el.dataset.mode, rid=el.dataset.rid;
+  const cid=mode==='forecast'?activeFCo:activeRCo, wid=mode==='forecast'?activeFWk:activeRWk;
+  if(mode==='forecast') setF(cid,wid,rid,'n',el.value);
+  else                  setR(cid,wid,rid,'n',el.value);
+}
+function setConf(rid, val) {
+  const cur=getF(activeFCo,activeFWk,rid).c;
+  setF(activeFCo,activeFWk,rid,'c',cur===val?'':val);
+  renderGrid('forecast');
+}
+function closeGuide(mode) {
+  if(mode==='forecast'){showGuideF=false;} else {showGuideR=false;}
+  saveData(); renderContent(mode);
+}
+function saveAll() {
+  if(activeTab==='forecast' && activeFCo) FLAST[activeFCo]=new Date().toISOString();
+  if(activeTab==='real'     && activeRCo) RLAST[activeRCo]=new Date().toISOString();
+  saveData(); renderSidebar('forecast'); renderSidebar('real');
+  const name = activeTab==='forecast' ? (activeFCo?COMPANIES.find(c=>c.id===activeFCo)?.name:'') : (activeRCo?COMPANIES.find(c=>c.id===activeRCo)?.name:'');
+  toast(`✓ Datos guardados${name?' · '+name:''}`, 'ok');
+  if(activeFCo) renderContent('forecast');
+  if(activeRCo) renderContent('real');
+}
+
+// ── EXPORT ─────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const rows=['Tipo,Empresa,Semana,Rango,Concepto,Monto,Notas,Confianza'];
+  COMPANIES.forEach(co=>{
+    WEEKS.forEach(wk=>{
+      ROWS.filter(r=>!r.computed).forEach(row=>{
+        const cf=getF(co.id,wk.id,row.id); if(cf.v) rows.push(['Forecast',co.name,wk.label,wk.range,row.label,cf.v,`"${cf.n}"`,cf.c].join(','));
+        const cr=getR(co.id,wk.id,row.id); if(cr.v) rows.push(['Real',    co.name,wk.label,wk.range,row.label,cr.v,`"${cr.n}"`,'' ].join(','));
+      });
+    });
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));
+  a.download=`traxion_cashforecast_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); toast('✓ CSV exportado','ok');
+}
+
+// ── CONSOLIDADO ────────────────────────────────────────────────────────────
+let selectedCos = new Set(COMPANIES.map(c=>c.id));
+// scenPct[cid][wid][rid] = -50..+50  (per company, per week, per rubro)
+let scenPct = {};
+function getScenPct(cid, rid) { return scenPct[cid]?.[bkWeek]?.[rid] || 0; }
+function setScenPct(cid, rid, val) {
+  if (!scenPct[cid]) scenPct[cid] = {};
+  if (!scenPct[cid][bkWeek]) scenPct[cid][bkWeek] = {};
+  scenPct[cid][bkWeek][rid] = Math.min(50, Math.max(-50, parseInt(val) || 0));
+}
+let saldoChart=null;
+
+function consTimeline(dir) {
+  let runBal=0;
+  selectedCos.forEach(cid=>{ runBal+=pn(getF(cid,WEEKS[0].id,'saldo_ini').v); });
+  return WEEKS.map(wk=>{
+    let tin=0,tout=0;
+    selectedCos.forEach(cid=>{
+      IN_ROWS.forEach(r=>  { tin  += pn(getF(cid,wk.id,r).v)*(1+dir*(scenPct[cid]?.[wk.id]?.[r]||0)/100); });
+      OUT_ROWS.forEach(r=> { tout += pn(getF(cid,wk.id,r).v)*(1+dir*(scenPct[cid]?.[wk.id]?.[r]||0)/100); });
+    });
+    runBal = runBal+tin-tout; return runBal;
+  });
+}
+
+function renderConsolidado() {
+  if (!bkWeek) bkWeek = getCurrentWeekId(WEEKS);
+  renderConsChips(); renderConsKpis(); renderSliders();
+  renderScenTable(); renderSaldoChart();
+  renderBreakdownFilters(); renderBreakdownTable();
+  if (scenMatrixOpen) renderScenMatrix();
+}
+
+function renderConsChips() {
+  document.getElementById('cons-chips').innerHTML =
+    `<div class="co-chip chip-all" onclick="toggleAllCos()">${selectedCos.size===COMPANIES.length?'Deseleccionar todas':'Seleccionar todas'}</div>`+
+    COMPANIES.map(c=>`<div class="co-chip${selectedCos.has(c.id)?' selected':''}" onclick="toggleCo('${c.id}')">${c.short} · ${c.name}</div>`).join('');
+}
+function toggleCo(cid) { if(selectedCos.has(cid)){if(selectedCos.size>1)selectedCos.delete(cid);}else{selectedCos.add(cid);} renderConsolidado(); }
+function toggleAllCos() { selectedCos=selectedCos.size===COMPANIES.length?new Set([COMPANIES[0].id]):new Set(COMPANIES.map(c=>c.id)); renderConsolidado(); }
+
+function renderConsKpis() {
+  const el = document.getElementById('cons-kpis'); if (!el) return;
+  let totIn=0,totOut=0,totIni=0;
+  WEEKS.forEach(wk=>{ selectedCos.forEach(cid=>{ const T=totalsF(cid,wk.id); totIn+=T.totalIn; totOut+=T.totalOut; }); });
+  selectedCos.forEach(cid=>{ totIni+=pn(getF(cid,WEEKS[0].id,'saldo_ini').v); });
+  const neto=totIn-totOut, finLast=consTimeline(0).at(-1);
+  const kpis=[
+    {lbl:'Saldo inicial',val:totIni,sub:'Semana 1',cls:'blue'},
+    {lbl:'Total ingresos (13S)',val:totIn,sub:'Acumulado',cls:'pos'},
+    {lbl:'Total egresos (13S)', val:totOut,sub:'Acumulado',cls:'neg'},
+    {lbl:'Flujo neto (13S)',    val:neto, sub:'Acumulado',cls:neto>=0?'pos':'neg'},
+    {lbl:'Saldo final',val:finLast,sub:`S${WEEKS.at(-1).isoWeek}`,cls:finLast>=0?'lime':'neg'},
+  ];
+  document.getElementById('cons-kpis').innerHTML=kpis.map(k=>
+    `<div class="cons-kpi"><div class="cons-kpi-lbl">${k.lbl}</div><div class="cons-kpi-val ${k.cls}">${fmt(k.val)}</div><div class="cons-kpi-sub">${k.sub} · ${selectedCos.size} emp.</div></div>`
+  ).join('');
+}
+
+function renderSliders() { renderScenMatrix(); }
+
+let scenMatrixOpen = false;
+function toggleScenMatrix() {
+  scenMatrixOpen = !scenMatrixOpen;
+  const body = document.getElementById('scen-matrix-body');
+  const tog  = document.getElementById('scen-matrix-toggle');
+  if (body) body.style.display = scenMatrixOpen ? 'block' : 'none';
+  if (tog)  tog.textContent = scenMatrixOpen ? '▲' : '▼';
+  if (scenMatrixOpen) renderScenMatrix();
+}
+
+let mxCollapsed = { in: false, out: false };
+
+function toggleMxSection(section) {
+  mxCollapsed[section] = !mxCollapsed[section];
+  renderScenMatrix();
+}
+
+function renderScenMatrix() {
+  const el = document.getElementById('scen-matrix-table'); if (!el) return;
+  const allRows = [...IN_ROWS, ...OUT_ROWS];
+  const cos = COMPANIES.filter(c => selectedCos.has(c.id));
+
+  // Column headers = companies
+  const coHdrs = cos.map(c =>
+    `<th style="min-width:72px;text-align:center;">
+      ${c.short}<br><span style="font-weight:400;font-size:8px;color:var(--text-dim);">${c.name.split(' ')[0]}</span>
+    </th>`
+  ).join('');
+
+  let html = `<table class="scen-mx-table">
+    <thead>
+      <tr>
+        <th style="min-width:140px;">Rubro</th>
+        ${coHdrs}
+        <td style="min-width:60px;"></td>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  // Section separator rows — clickable to collapse
+  const renderSectionHdr = (label, cls, section) => {
+    const col = mxCollapsed[section];
+    const icon = col ? '▶' : '▼';
+    const countActive = (section === 'in' ? IN_ROWS : OUT_ROWS)
+      .reduce((s, r) => s + cos.filter(c => getScenPct(c.id,r)!==0).length, 0);
+    const badge = countActive > 0
+      ? `<span style="font-size:9px;background:var(--white);border-radius:3px;padding:1px 5px;margin-left:6px;opacity:0.9;">${countActive} ajuste${countActive>1?'s':''}</span>`
+      : '';
+    return `<tr class="mx-sec-hdr ${cls}" onclick="toggleMxSection('${section}')" style="cursor:pointer;user-select:none;">
+      <td colspan="${cos.length + 2}" style="padding:6px 10px 5px;font-family:var(--fh);font-weight:800;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;">
+        <span style="margin-right:6px;font-size:10px;">${icon}</span>${label}${badge}
+      </td>
+    </tr>`;
+  };
+
+  html += renderSectionHdr('Ingresos', 'in-hdr', 'in');
+  IN_ROWS.forEach(rid => {
+    const row = ROWS.find(r => r.id === rid);
+    const hasAny = cos.some(c => getScenPct(c.id, rid) !== 0);
+    const cells = cos.map(c => {
+      const pct = getScenPct(c.id, rid);
+      const cls = pct > 0 ? 'pos' : pct < 0 ? 'neg' : 'zero';
+      const bg  = pct > 0 ? 'background:var(--in-bg);' : pct < 0 ? 'background:var(--out-bg);' : '';
+      return `<td style="${bg}">
+        <div class="mx-spinner">
+          <button class="mx-spin-btn" onclick="stepMx('${c.id}','${rid}',-1)">▼</button>
+          <input class="mx-spin-input ${cls}" type="number" min="-50" max="50" step="1" value="${pct}"
+            oninput="updateMx('${c.id}','${rid}',this.value,false)"
+            onblur="blurMx('${c.id}','${rid}',this.value)">
+          <button class="mx-spin-btn" onclick="stepMx('${c.id}','${rid}',1)">▲</button>
+        </div>
+      </td>`;
+    }).join('');
+    html += `<tr class="mx-section-in"
+      style="${mxCollapsed.in?'display:none;':''}${hasAny?'background:var(--lime-bg);':''}">
+      <td style="padding-left:14px;font-weight:500;">${row.label}</td>
+      ${cells}
+      <td></td>
+    </tr>`;
+  });
+
+  html += renderSectionHdr('Egresos', 'out-hdr', 'out');
+  OUT_ROWS.forEach(rid => {
+    const row = ROWS.find(r => r.id === rid);
+    const hasAny = cos.some(c => getScenPct(c.id, rid) !== 0);
+    const cells = cos.map(c => {
+      const pct = getScenPct(c.id, rid);
+      // For egresos: increase (pos) = bad = red, decrease (neg) = good = green
+      const cls = pct > 0 ? 'neg' : pct < 0 ? 'pos' : 'zero';
+      const bg  = pct > 0 ? 'background:var(--out-bg);' : pct < 0 ? 'background:var(--in-bg);' : '';
+      return `<td style="${bg}">
+        <div class="mx-spinner">
+          <button class="mx-spin-btn" onclick="stepMx('${c.id}','${rid}',-1)">▼</button>
+          <input class="mx-spin-input ${cls}" type="number" min="-50" max="50" step="1" value="${pct}"
+            oninput="updateMx('${c.id}','${rid}',this.value,false)"
+            onblur="blurMx('${c.id}','${rid}',this.value)">
+          <button class="mx-spin-btn" onclick="stepMx('${c.id}','${rid}',1)">▲</button>
+        </div>
+      </td>`;
+    }).join('');
+    html += `<tr class="mx-section-out"
+      style="${mxCollapsed.out?'display:none;':''}${hasAny?'background:var(--lime-bg);':''}">
+      <td style="padding-left:14px;font-weight:500;">${row.label}</td>
+      ${cells}
+      <td></td>
+    </tr>`;
+  });
+
+  // Reset per-company buttons as a footer row
+  const resetBtns = cos.map(c =>
+    `<td style="text-align:center;"><button class="row-reset-btn" onclick="resetCoSliders('${c.id}')">Reset</button></td>`
+  ).join('');
+  html += `<tr style="background:var(--surface2);border-top:2px solid var(--border-med);">
+    <td style="font-family:var(--fh);font-weight:700;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dim);padding-left:10px;">Resetear empresa</td>
+    ${resetBtns}
+    <td></td>
+  </tr>`;
+
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+
+  // Badge — count adjustments for current bkWeek only
+  let totalChanged = 0;
+  const allRows2 = [...IN_ROWS,...OUT_ROWS];
+  COMPANIES.forEach(co => { allRows2.forEach(r => { if(getScenPct(co.id,r)!==0) totalChanged++; }); });
+  const wkObj = WEEKS.find(w=>w.id===bkWeek);
+  const sumEl = document.getElementById('scen-matrix-summary');
+  if (sumEl) {
+    const wkLabel = wkObj ? `· ${wkObj.label} ${wkObj.range}` : '';
+    sumEl.textContent = totalChanged > 0
+      ? `${wkLabel} · ${totalChanged} ajuste${totalChanged>1?'s':''} activo${totalChanged>1?'s':''}`
+      : wkLabel;
+  }
+}
+
+function updateMx(cid, rid, val, rerender) {
+  if (!bkWeek) bkWeek = getCurrentWeekId(WEEKS);
+  setScenPct(cid, rid, val);
+  if (rerender !== false) {
+    renderScenMatrix();
+  }
+  renderSaldoChart(); renderConsKpis();
+  renderBreakdownTable();
+}
+function stepMx(cid, rid, delta) {
+  if (!bkWeek) bkWeek = getCurrentWeekId(WEEKS);
+  updateMx(cid, rid, getScenPct(cid, rid) + delta, true);
+}
+function blurMx(cid, rid, val) {
+  // Called on blur — re-render matrix to update colors/highlights
+  if (!bkWeek) bkWeek = getCurrentWeekId(WEEKS);
+  setScenPct(cid, rid, val);
+  renderScenMatrix();
+  renderSaldoChart(); renderConsKpis();
+  renderBreakdownTable();
+}
+function resetCoSliders(cid) {
+  if (scenPct[cid]) scenPct[cid][bkWeek] = {};
+  renderScenMatrix(); renderSaldoChart(); renderConsKpis(); renderBreakdownTable();
+}
+function resetAllSliders() {
+  // Reset only current week across all companies
+  COMPANIES.forEach(c => { if(scenPct[c.id]) scenPct[c.id][bkWeek] = {}; });
+  renderConsolidado();
+}
+function updateSlider(rid,val){} // kept for compatibility
+function stepSlider(rid,delta){} // kept for compatibility
+function toggleGroup(id){}       // kept for compatibility
+
+
+function renderScenTable() {
+  // Scenario table removed — no-op
+}
+
+function renderSaldoChart() {
+  if(saldoChart){saldoChart.destroy();saldoChart=null;}
+  const ctx=document.getElementById('saldo-chart')?.getContext('2d'); if(!ctx) return;
+  if(typeof Chart === 'undefined') return;
+
+  // Forecast line — all 52 weeks
+  const forecastData = (() => {
+    let bal = 0;
+    selectedCos.forEach(cid => { bal += pn(getF(cid, WEEKS[0].id, 'saldo_ini').v); });
+    return WEEKS.map(wk => {
+      let tin=0, tout=0;
+      selectedCos.forEach(cid => {
+        IN_ROWS.forEach(r  => { tin  += pn(getF(cid,wk.id,r).v) * (1 + (scenPct[cid]?.[wk.id]?.[r]||0)/100); });
+        OUT_ROWS.forEach(r => { tout += pn(getF(cid,wk.id,r).v) * (1 + (scenPct[cid]?.[wk.id]?.[r]||0)/100); });
+      });
+      bal = bal + tin - tout;
+      return bal;
+    });
+  })();
+
+  // Real line — only weeks that have any real data, null otherwise
+  const realData = WEEKS.map(wk => {
+    // Find matching REAL_WEEKS entry (r_w1 matches w1, etc.)
+    const rwid = 'r_' + wk.id;
+    const hasData = [...selectedCos].some(cid =>
+      [...IN_ROWS,...OUT_ROWS].some(r => pn(getR(cid, rwid, r).v) !== 0)
+    );
+    if (!hasData) return null;
+    let bal = 0;
+    selectedCos.forEach(cid => { bal += pn(getR(cid, rwid, 'saldo_ini').v); });
+    selectedCos.forEach(cid => {
+      IN_ROWS.forEach(r  => { bal += pn(getR(cid, rwid, r).v); });
+      OUT_ROWS.forEach(r => { bal -= pn(getR(cid, rwid, r).v); });
+    });
+    return bal;
+  });
+
+  const hasRealData = realData.some(v => v !== null);
+
+  const datasets = [
+    {
+      label: 'Forecast',
+      data: forecastData,
+      borderColor: '#B5BD00',
+      backgroundColor: 'rgba(181,189,0,0.08)',
+      borderWidth: 2.5,
+      pointRadius: 3,
+      pointBackgroundColor: '#B5BD00',
+      tension: 0.3,
+      fill: true,
+    }
+  ];
+
+  if (hasRealData) {
+    datasets.push({
+      label: 'Real',
+      data: realData,
+      borderColor: '#7B3FC4',
+      backgroundColor: 'rgba(123,63,196,0.10)',
+      borderWidth: 2.5,
+      pointRadius: 5,
+      pointBackgroundColor: '#7B3FC4',
+      tension: 0.3,
+      fill: false,
+      spanGaps: false,
+    });
+  }
+
+  saldoChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: WEEKS.map(w => w.label), datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { font: { family: 'Barlow', size: 11 }, color: '#63666A', boxWidth: 12 } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { family: 'Barlow Condensed', weight: '700', size: 11 }, color: '#97999B' } },
+        y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { family: 'Barlow', size: 10 }, color: '#97999B', callback: v => fmt(v) } }
+      }
+    }
+  });
+}
+
+// ── BREAKDOWN TABLE STATE ─────────────────────────────────────────────────
+
+let pickerBkMonth = null;
+
+function renderBreakdownFilters() {
+  // Build month map from WEEKS
+  const months = {};
+  WEEKS.forEach(w => { if(!months[w.month]) months[w.month]=[]; months[w.month].push(w); });
+  const activeWkObj = WEEKS.find(w=>w.id===bkWeek);
+  if (activeWkObj && !pickerBkMonth) pickerBkMonth = activeWkObj.month;
+
+  // Month pills
+  let mHtml = Object.keys(months).map(mo =>
+    `<div class="bk-chip${mo===pickerBkMonth?' sel':''}" onclick="setBkMonth('${mo}')">${mo}</div>`
+  ).join('');
+
+  // Week pills for selected month
+  let wHtml = '';
+  if (pickerBkMonth && months[pickerBkMonth]) {
+    wHtml = months[pickerBkMonth].map(w =>
+      `<div class="bk-chip wk-chip${w.id===bkWeek?' sel':''}" onclick="setBkWeek('${w.id}')">${w.label} <span style="font-size:9px;font-weight:400;opacity:0.7;">${w.range}</span></div>`
+    ).join('');
+  }
+
+  document.getElementById('bk-week-chips').innerHTML = mHtml;
+  const wkRow = document.getElementById('bk-week-row');
+  if (wkRow) wkRow.innerHTML = wHtml;
+
+  // Company chips
+  document.getElementById('bk-co-chips').innerHTML =
+    `<div class="bk-chip${bkCos.size===COMPANIES.length?' sel':''}" style="font-style:italic;" onclick="toggleAllBkCos()">Todas</div>` +
+    COMPANIES.map(c =>
+      `<div class="bk-chip${bkCos.has(c.id)?' sel':''}" onclick="toggleBkCo('${c.id}')">${c.short}</div>`
+    ).join('');
+}
+
+function setBkMonth(mo) {
+  pickerBkMonth = pickerBkMonth === mo ? null : mo;
+  renderBreakdownFilters();
+}
+
+function setBkWeek(wid) {
+  bkWeek = wid;
+  renderBreakdownFilters();
+  renderBreakdownTable();
+  renderScenMatrix(); // refresh matrix for new week
+}
+function toggleBkCo(cid) {
+  if (bkCos.has(cid)) { if (bkCos.size > 1) bkCos.delete(cid); }
+  else bkCos.add(cid);
+  renderBreakdownFilters();
+  renderBreakdownTable();
+}
+function toggleAllBkCos() {
+  bkCos = bkCos.size === COMPANIES.length
+    ? new Set([COMPANIES[0].id])
+    : new Set(COMPANIES.map(c => c.id));
+  renderBreakdownFilters();
+  renderBreakdownTable();
+}
+
+function renderBreakdownTable() {
+  const el = document.getElementById('breakdown-table'); if (!el) return;
+  const wk  = WEEKS.find(w => w.id === bkWeek);
+  const cos = COMPANIES.filter(c => bkCos.has(c.id));
+
+  // Column headers: rubro label | co1 | co2 | ... | TOTAL
+  const coHdrs = cos.map(c =>
+    `<th style="min-width:90px;">${c.short}<br><span style="font-weight:400;font-size:9px;color:var(--text-dim);">${c.name.split(' ').slice(0,1).join(' ')}</span></th>`
+  ).join('');
+
+  let html = `<table class="rub-table">
+    <thead>
+      <tr>
+        <th>Rubro · ${wk.label} — ${wk.range}</th>
+        ${coHdrs}
+        <th class="total-th">Total</th>
+      </tr>
+    </thead>
+    <tbody>`;
+
+  // Helper: get adjusted value (applies scenPct if set)
+  const gAdj = (cid, rid) => {
+    const base = pn(getF(cid, bkWeek, rid).v);
+    const pct  = getScenPct(cid, rid);
+    return base * (1 + pct / 100);
+  };
+
+  // Helper: value cell — inline, no wrapper div
+  const vc  = (v, cls) => `<td class="${cls||''}">${fmt(v)}</td>`;
+  const vtc = (v, cls) => `<td class="total-col ${cls||''}">${fmt(v)}</td>`;
+
+  // ── SALDO INICIAL ── (not adjusted — it's a position, not a flow)
+  const iniVals = cos.map(c => pn(getF(c.id, bkWeek, 'saldo_ini').v));
+  const sumIni  = iniVals.reduce((s,v) => s+v, 0);
+  html += `<tr class="saldo-row">
+    <td>Saldo inicial</td>
+    ${iniVals.map(v => vc(v, v>0?'cv-blue':v<0?'cv-neg':'cv-zero')).join('')}
+    ${vtc(sumIni, sumIni>0?'cv-blue':sumIni<0?'cv-neg':'cv-zero')}
+  </tr>`;
+
+  // ── INGRESOS SECTION ──
+  html += `<tr class="sec-row in-sec">
+    <td>Ingresos</td>
+    ${cos.map(() => '<td></td>').join('')}
+    <td class="total-col"></td>
+  </tr>`;
+  IN_ROWS.forEach(rid => {
+    const row  = ROWS.find(r => r.id === rid);
+    const vals = cos.map(c => gAdj(c.id, rid));
+    const tot  = vals.reduce((s,v) => s+v, 0);
+    html += `<tr class="sub-row">
+      <td>${row.label}</td>
+      ${vals.map(v => vc(v, v>0?'cv-pos':v<0?'cv-neg':'cv-zero')).join('')}
+      ${vtc(tot, tot>0?'cv-pos':tot<0?'cv-neg':'cv-zero')}
+    </tr>`;
+  });
+  // Total ingresos
+  const totIn = cos.map(c => IN_ROWS.reduce((s,r) => s+gAdj(c.id,r), 0));
+  const sumIn = totIn.reduce((s,v) => s+v, 0);
+  html += `<tr class="rub-subtotal">
+    <td>Total ingresos</td>
+    ${totIn.map(v => vc(v, v>0?'cv-pos':'cv-zero')).join('')}
+    ${vtc(sumIn, sumIn>0?'cv-pos':'cv-zero')}
+  </tr>`;
+
+  // ── EGRESOS SECTION ──
+  html += `<tr class="sec-row out-sec">
+    <td>Egresos</td>
+    ${cos.map(() => '<td></td>').join('')}
+    <td class="total-col"></td>
+  </tr>`;
+  OUT_ROWS.forEach(rid => {
+    const row  = ROWS.find(r => r.id === rid);
+    const vals = cos.map(c => gAdj(c.id, rid));
+    const tot  = vals.reduce((s,v) => s+v, 0);
+    html += `<tr class="sub-row">
+      <td>${row.label}</td>
+      ${vals.map(v => vc(v, v>0?'cv-neg':v<0?'cv-pos':'cv-zero')).join('')}
+      ${vtc(tot, tot>0?'cv-neg':tot<0?'cv-pos':'cv-zero')}
+    </tr>`;
+  });
+  // Total egresos
+  const totOut = cos.map(c => OUT_ROWS.reduce((s,r) => s+gAdj(c.id,r), 0));
+  const sumOut = totOut.reduce((s,v) => s+v, 0);
+  html += `<tr class="rub-subtotal">
+    <td>Total egresos</td>
+    ${totOut.map(v => vc(v, v>0?'cv-neg':'cv-zero')).join('')}
+    ${vtc(sumOut, sumOut>0?'cv-neg':'cv-zero')}
+  </tr>`;
+
+  // ── FLUJO NETO ──
+  const netoVals = cos.map((c,i) => totIn[i] - totOut[i]);
+  const sumNeto  = netoVals.reduce((s,v) => s+v, 0);
+  html += `<tr class="rub-neto">
+    <td>Flujo neto</td>
+    ${netoVals.map(v => vc(v, v>=0?'cv-pos':'cv-neg')).join('')}
+    ${vtc(sumNeto, sumNeto>=0?'cv-pos':'cv-neg')}
+  </tr>`;
+
+  // ── SALDO FINAL ──
+  const finVals = cos.map((c,i) => {
+    const ini = pn(getF(c.id,bkWeek,'saldo_ini').v); // saldo_ini not adjusted
+    return ini + totIn[i] - totOut[i];
+  });
+  const sumFin = finVals.reduce((s,v) => s+v, 0);
+  html += `<tr class="fin-row">
+    <td>Saldo final</td>
+    ${finVals.map(v => vc(v, v>0?'cv-lime':v<0?'cv-neg':'cv-zero')).join('')}
+    ${vtc(sumFin, sumFin>0?'cv-lime':sumFin<0?'cv-neg':'cv-zero')}
+  </tr>`;
+
+  html += `</tbody></table>`;
+  el.innerHTML = html;
+}
+
+// ── COMPARATIVO ────────────────────────────────────────────────────────────
+let cmpSelectedCos = new Set(COMPANIES.map(c=>c.id));
+let cmpWeek = REAL_WEEKS[0].id;
+
+function renderComparativo() {
+  renderCmpChips();
+  renderCmpWeekChips();
+  renderCmpAccuracy();
+  renderCmpTable();
+}
+
+function renderCmpChips() {
+  document.getElementById('cmp-chips').innerHTML = COMPANIES.map(c=>
+    `<div class="co-chip${cmpSelectedCos.has(c.id)?' selected':''}" onclick="toggleCmpCo('${c.id}')">${c.short} · ${c.name}</div>`
+  ).join('');
+}
+
+let pickerCmpMonth = null;
+
+function renderCmpWeekChips() {
+  const months = {};
+  REAL_WEEKS.forEach(w => { if(!months[w.month]) months[w.month]=[]; months[w.month].push(w); });
+  const activeWkObj = REAL_WEEKS.find(w=>w.id===cmpWeek);
+  if (activeWkObj && !pickerCmpMonth) pickerCmpMonth = activeWkObj.month;
+
+  // Month row
+  const mHtml = Object.keys(months).map(mo =>
+    `<div class="bk-chip${mo===pickerCmpMonth?' sel':''}" onclick="setCmpMonth('${mo}')">${mo}</div>`
+  ).join('');
+
+  // Week row for selected month
+  const wHtml = (pickerCmpMonth && months[pickerCmpMonth])
+    ? months[pickerCmpMonth].map(w =>
+        `<div class="bk-chip wk-chip${w.id===cmpWeek?' sel':''}" onclick="setCmpWeek('${w.id}')">${w.label} <span style="font-size:9px;font-weight:400;opacity:0.7;">${w.range}</span></div>`
+      ).join('')
+    : '';
+
+  document.getElementById('cmp-week-chips').innerHTML =
+    `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;">${mHtml}</div>
+     <div style="display:flex;flex-wrap:wrap;gap:5px;">${wHtml}</div>`;
+}
+
+function setCmpMonth(mo) {
+  pickerCmpMonth = pickerCmpMonth === mo ? null : mo;
+  renderCmpWeekChips();
+}
+
+function toggleCmpCo(cid) {
+  if(cmpSelectedCos.has(cid)){if(cmpSelectedCos.size>1)cmpSelectedCos.delete(cid);}
+  else cmpSelectedCos.add(cid);
+  renderComparativo();
+}
+function setCmpWeek(wid) {
+  cmpWeek = wid;
+  renderCmpWeekChips();
+  renderCmpAccuracy();
+  renderCmpTable();
+}
+
+const fWid = wid => wid.startsWith('r_') ? wid.slice(2) : wid;
+
+function renderCmpAccuracy() {
+  const bar = document.getElementById('cmp-accuracy-bar'); if(!bar) return;
+  const wk = getWeekObj(cmpWeek);
+  let fFinTot=0, rFinTot=0, hasData=false;
+  [...cmpSelectedCos].forEach(cid => {
+    const fT = totalsF(cid, fWid(cmpWeek));
+    const rT = totalsR(cid, cmpWeek);
+    if(fT.fin!==0||rT.fin!==0) hasData=true;
+    fFinTot+=fT.fin; rFinTot+=rT.fin;
+  });
+  if(!hasData){bar.style.display='none';return;}
+  const accuracy = fFinTot!==0 ? Math.max(0,Math.min(100,(1-Math.abs(rFinTot-fFinTot)/Math.abs(fFinTot))*100)) : 0;
+  const delta=rFinTot-fFinTot;
+  const deltaPct=fFinTot!==0?(delta/Math.abs(fFinTot))*100:0;
+  const accColor=accuracy>=90?'var(--in-color)':accuracy>=70?'#B07800':'var(--out-color)';
+  const deltaColor=delta>=0?'var(--in-color)':'var(--out-color)';
+  bar.style.display='grid';
+  bar.style.gridTemplateColumns='repeat(4,1fr)';
+  bar.style.gap='10px';
+  bar.innerHTML=`
+    <div class="cons-kpi" style="border-left:3px solid ${accColor};">
+      <div class="cons-kpi-lbl">Accuracy forecast (saldo final)</div>
+      <div class="cons-kpi-val" style="font-size:28px;color:${accColor};">${accuracy.toFixed(1)}%</div>
+      <div class="cons-kpi-sub">${wk?.label} · ${wk?.range}</div>
+    </div>
+    <div class="cons-kpi">
+      <div class="cons-kpi-lbl">Forecast — Saldo final</div>
+      <div class="cons-kpi-val" style="color:var(--lime-deep);">${fmt(fFinTot)}</div>
+      <div class="cons-kpi-sub">Proyectado</div>
+    </div>
+    <div class="cons-kpi">
+      <div class="cons-kpi-lbl">Real — Saldo final</div>
+      <div class="cons-kpi-val" style="color:var(--real-color);">${fmt(rFinTot)}</div>
+      <div class="cons-kpi-sub">Confirmado</div>
+    </div>
+    <div class="cons-kpi">
+      <div class="cons-kpi-lbl">Variación (Real − Forecast)</div>
+      <div class="cons-kpi-val" style="color:${deltaColor};">${fmt(delta)}</div>
+      <div class="cons-kpi-sub">${fmtPct(deltaPct)} vs forecast</div>
+    </div>`;
+}
+
+function renderCmpTable() {
+  const el=document.getElementById('cmp-table-wrap'); if(!el) return;
+  const wk=getWeekObj(cmpWeek);
+  const fwid=fWid(cmpWeek);
+  const hasAnyData=[...cmpSelectedCos].some(cid=>[...IN_ROWS,...OUT_ROWS].some(r=>pn(getR(cid,cmpWeek,r).v)!==0));
+  if(!hasAnyData){
+    el.innerHTML=`<div style="padding:40px;text-align:center;color:var(--text-dim);font-family:var(--fh);font-size:14px;line-height:1.8;">
+      No hay datos Reales para ${wk?.label} (${wk?.range}).<br>
+      <span style="font-size:12px;">Ingresa cifras en la pestaña <strong style="color:var(--real-color);">Real</strong> para ver el comparativo.</span>
+    </div>`;
+    return;
+  }
+  let html=`<table class="cmp-table">
+    <thead><tr>
+      <th style="text-align:left;min-width:220px;">Empresa / Rubro</th>
+      <th style="color:var(--lime-deep);">Forecast</th>
+      <th style="color:var(--real-color);">Real</th>
+      <th>Δ $</th>
+      <th>Δ %</th>
+    </tr></thead><tbody>`;
+  [...cmpSelectedCos].forEach(cid=>{
+    const co=COMPANIES.find(c=>c.id===cid);
+    const hasCoData=[...IN_ROWS,...OUT_ROWS].some(r=>pn(getR(cid,cmpWeek,r).v)!==0||pn(getF(cid,fwid,r).v)!==0);
+    if(!hasCoData) return;
+    html+=`<tr class="co-head"><td colspan="5">${co.short} — ${co.name}</td></tr>`;
+    const mkRows=(rows,secLabel,secCls)=>{
+      let out=`<tr><td colspan="5" style="padding:5px 8px 2px;font-family:var(--fh);font-weight:700;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${secCls};background:var(--surface);">${secLabel}</td></tr>`;
+      rows.forEach(rid=>{
+        const row=ROWS.find(r=>r.id===rid);
+        const fv=pn(getF(cid,fwid,rid).v), rv=pn(getR(cid,cmpWeek,rid).v);
+        const d=rv-fv, dp=fv!==0?(d/Math.abs(fv))*100:(rv!==0?100:0);
+        const dCls=d>0?'val-pos':d<0?'val-neg':'val-zero';
+        out+=`<tr class="row-forecast">
+          <td style="padding-left:20px;">${row.label}</td>
+          <td class="${fv?'':'val-zero'}">${fv?fmt(fv):'—'}</td>
+          <td class="${rv?'val-real':'val-zero'}">${rv?fmt(rv):'—'}</td>
+          <td class="${dCls}">${(fv||rv)?fmt(d):'—'}</td>
+          <td class="${dCls}" style="font-style:italic;">${(fv||rv)?fmtPct(dp):'—'}</td>
+        </tr>`;
+      });
+      return out;
+    };
+    html+=mkRows(IN_ROWS,'Ingresos','var(--in-color)');
+    html+=mkRows(OUT_ROWS,'Egresos','var(--out-color)');
+    const fT=totalsF(cid,fwid), rT=totalsR(cid,cmpWeek);
+    const totRow=(label,fv,rv,bg)=>{
+      const d=rv-fv, dp=fv!==0?(d/Math.abs(fv))*100:(rv!==0?100:0);
+      const dCls=d>0?'val-pos':d<0?'val-neg':'val-zero';
+      return `<tr style="${bg}"><td style="font-family:var(--fh);font-weight:800;font-size:11px;padding-left:8px;">${label}</td>
+        <td style="font-weight:700;">${fv?fmt(fv):'—'}</td>
+        <td class="val-real" style="font-weight:700;">${rv?fmt(rv):'—'}</td>
+        <td class="${dCls}" style="font-weight:700;">${(fv||rv)?fmt(d):'—'}</td>
+        <td class="${dCls}" style="font-weight:700;font-style:italic;">${(fv||rv)?fmtPct(dp):'—'}</td>
+      </tr>`;
+    };
+    html+=`<tr class="row-sep"><td colspan="5"></td></tr>`;
+    html+=totRow('▸ Total ingresos',fT.totalIn,rT.totalIn,'background:var(--in-bg);');
+    html+=totRow('▸ Total egresos',fT.totalOut,rT.totalOut,'background:var(--out-bg);');
+    html+=totRow('▸ Saldo final',fT.fin,rT.fin,'background:var(--lime-bg);border-top:2px solid var(--lime-dark);');
+    html+=`<tr class="row-sep"><td colspan="5"></td></tr><tr class="row-sep"><td colspan="5"></td></tr>`;
+  });
+  html+=`</tbody></table>
+  <div style="margin-top:12px;display:flex;gap:20px;font-size:11px;color:var(--text-dim);flex-wrap:wrap;">
+    <span><span style="color:var(--lime-deep);font-weight:700;">Forecast</span> = proyección capturada</span>
+    <span><span style="color:var(--real-color);font-weight:700;">Real</span> = cifra real confirmada</span>
+    <span><strong>Δ%</strong> = (Real − Forecast) / |Forecast|</span>
+    <span style="color:var(--in-color);">▲ positivo = por encima del forecast</span>
+    <span style="color:var(--out-color);">▼ negativo = por debajo del forecast</span>
+  </div>`;
+  el.innerHTML=html;
+}
+
+
+// ── COMMENT AREA ──────────────────────────────────────────────────────────
+function renderCommentArea(cid, wid) {
+  const el = document.getElementById('comment-area-f'); if (!el) return;
+  const wk = getWeekObj(wid);
+  const co = COMPANIES.find(c=>c.id===cid);
+  const txt = getComment(cid, wid);
+  el.innerHTML = `<div class="comment-area">
+    <div class="comment-area-hdr">
+      <span class="comment-area-label">📝 Comentario general — ${co?.short} · ${wk?.label} (${wk?.range})</span>
+      <span class="comment-area-meta">Se incluye en el Resumen semanal</span>
+    </div>
+    <textarea class="comment-inp" id="comment-inp-main"
+      placeholder="Escribe aquí el análisis narrativo de la semana: situación de liquidez, eventos relevantes, riesgos identificados, acciones tomadas…"
+      onchange="onComment(this)" oninput="onComment(this)">${txt}</textarea>
+  </div>`;
+}
+
+function onComment(el) {
+  const cid = activeFCo, wid = activeFWk;
+  if (!cid || !wid) return;
+  setComment(cid, wid, el.value);
+}
+
+// ── RESUMEN PAGE ───────────────────────────────────────────────────────────
+let resWeek = null;
+let pickerResMonth = null;
+
+function renderResumen() {
+  if (!resWeek) resWeek = getCurrentWeekId(WEEKS);
+  renderResWeekChips();
+  renderResContent();
+}
+
+function renderResWeekChips() {
+  const months = {};
+  WEEKS.forEach(w => { if(!months[w.month]) months[w.month]=[]; months[w.month].push(w); });
+  const aw = WEEKS.find(w=>w.id===resWeek);
+  if (aw && !pickerResMonth) pickerResMonth = aw.month;
+
+  const mHtml = Object.keys(months).map(mo =>
+    `<div class="bk-chip${mo===pickerResMonth?' sel':''}" onclick="setResMonth('${mo}')">${mo}</div>`
+  ).join('');
+  const wHtml = (pickerResMonth && months[pickerResMonth])
+    ? months[pickerResMonth].map(w =>
+        `<div class="bk-chip wk-chip${w.id===resWeek?' sel':''}" onclick="setResWeek('${w.id}')">${w.label} <span style="font-size:9px;font-weight:400;opacity:0.7;">${w.range}</span></div>`
+      ).join('')
+    : '';
+  document.getElementById('res-week-chips').innerHTML =
+    `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:4px;">${mHtml}</div>
+     <div style="display:flex;flex-wrap:wrap;gap:5px;">${wHtml}</div>`;
+}
+
+function setResMonth(mo) { pickerResMonth = mo; renderResWeekChips(); }
+function setResWeek(wid) { resWeek = wid; renderResWeekChips(); renderResContent(); }
+
+function getResKpis(cid, wid) {
+  const T = totalsF(cid, wid);
+  const g = rid => pn(getF(cid,wid,rid).v);
+  const otrosEgr = g('impuestos') + g('gasto_fin') + g('capex') + g('otros_egr');
+  return {
+    ini:         T.ini,
+    totalIn:     T.totalIn,
+    fin:         T.fin,
+    provCrit:    g('prov_crit'),
+    provNoCrit:  g('prov_no_crit'),
+    interco:     g('interco'),
+    corporativo: g('corporativo'),
+    otrosEgr,
+  };
+}
+
+function renderResContent() {
+  const el = document.getElementById('res-content'); if (!el) return;
+  const wk = WEEKS.find(w=>w.id===resWeek);
+  if (!wk) { el.innerHTML=''; return; }
+
+  // Header
+  let html = `<div class="res-header" id="res-print-header">
+    <div>
+      <div class="res-header-title">Reporte Semanal de Tesorería — ${wk.label} · ${wk.range} · ${wk.month}</div>
+      <div class="res-header-sub">Traxion Logística y Tecnología · Generado el ${new Date().toLocaleDateString('es-MX',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+    </div>
+  </div>
+  <div class="res-grid" id="res-cards">`;
+
+  COMPANIES.forEach(co => {
+    const kpis = getResKpis(co.id, resWeek);
+    const comment = getComment(co.id, resWeek);
+    const hasData = kpis.totalIn !== 0 || kpis.provCrit !== 0 || kpis.provNoCrit !== 0;
+
+    const kpiBlock = (lbl, val, cls) => `
+      <div class="res-kpi">
+        <div class="res-kpi-lbl">${lbl}</div>
+        <div class="res-kpi-val ${cls}">${val!==0?fmt(val):'—'}</div>
+      </div>`;
+
+    html += `<div class="res-card${!hasData?' res-card-empty':''}">
+      <div class="res-card-hdr">
+        <span class="res-card-name">${co.name}</span>
+        <span class="res-card-short">${co.short}</span>
+      </div>
+      <div class="res-card-body">
+        <div class="res-comment${!comment?' empty':''}">${comment || 'Sin comentario esta semana.'}</div>
+        <div class="res-kpis">
+          ${kpiBlock('Saldo inicial',        kpis.ini,        kpis.ini>=0?'v-blue':'v-neg')}
+          ${kpiBlock('Total ingresos',        kpis.totalIn,    'v-pos')}
+          ${kpiBlock('Prov. críticos',        kpis.provCrit,   kpis.provCrit>0?'v-neg':'v-muted')}
+          ${kpiBlock('Prov. no críticos',     kpis.provNoCrit, kpis.provNoCrit>0?'v-neg':'v-muted')}
+          ${kpiBlock('Intercompañías',        kpis.interco,    kpis.interco>0?'v-neg':'v-muted')}
+          ${kpiBlock('Corporativo',           kpis.corporativo,kpis.corporativo>0?'v-neg':'v-muted')}
+          ${kpiBlock('Otros egresos',         kpis.otrosEgr,   kpis.otrosEgr>0?'v-neg':'v-muted')}
+          ${kpiBlock('Saldo final',           kpis.fin,        kpis.fin>=0?'v-lime':'v-neg')}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// ── PDF EXPORT ─────────────────────────────────────────────────────────────
+async function exportResumenPDF() {
+  const btn = document.querySelector('[onclick="exportResumenPDF()"]');
+
+  console.log('jspdf available:', !!window.jspdf);
+  console.log('resWeek:', resWeek);
+  console.log('WEEKS length:', WEEKS.length);
+
+  if (!window.jspdf) {
+    toast('jsPDF no cargó todavía — espera 2 segundos y vuelve a intentar', '');
+    // Try loading it dynamically
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    if (!window.jspdf) { toast('No se pudo cargar jsPDF', ''); return; }
+  }
+
+  if (!resWeek) resWeek = getCurrentWeekId(WEEKS);
+  const wk = WEEKS.find(w => w.id === resWeek);
+  if (!wk) { toast('Selecciona una semana primero', ''); return; }
+
+  if (btn) { btn.textContent = '⏳ Generando…'; btn.disabled = true; }
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = 297, pageH = 210, margin = 12;
+
+    const drawPageHeader = () => {
+      pdf.setFillColor(208, 223, 0);
+      pdf.rect(0, 0, pageW, 14, 'F');
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11); pdf.setTextColor(99, 102, 106);
+      pdf.text('TRAXION — Logística y Tecnología', margin, 9);
+      pdf.setFontSize(9); pdf.setFont('helvetica', 'normal');
+      pdf.text(`Reporte Semanal de Tesorería · ${wk.label} · ${wk.range} · ${wk.month}`, pageW/2, 9, { align: 'center' });
+      pdf.text(`Generado: ${new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}`, pageW - margin, 9, { align: 'right' });
+    };
+
+    const drawCard = (co, kpis, comment, x, y, w, h) => {
+      // Card background
+      pdf.setFillColor(255,255,255);
+      pdf.setDrawColor(200,200,198); pdf.setLineWidth(0.3);
+      pdf.roundedRect(x, y, w, h, 2, 2, 'FD');
+
+      // Header bar
+      pdf.setFillColor(208,223,0);
+      pdf.roundedRect(x, y, w, 10, 2, 2, 'F');
+      pdf.rect(x, y+6, w, 4, 'F');
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(10); pdf.setTextColor(80,83,86);
+      pdf.text(co.name.toUpperCase(), x+4, y+7);
+      pdf.setFontSize(8); pdf.setTextColor(120,120,0);
+      pdf.text(co.short, x+w-4, y+7, {align:'right'});
+
+      // Comment box
+      const commentY = y + 13;
+      const commentH = 22;
+      pdf.setFillColor(249,251,212);
+      pdf.roundedRect(x+2, commentY, w-4, commentH, 1, 1, 'F');
+      pdf.setDrawColor(181,189,0); pdf.setLineWidth(1);
+      pdf.line(x+3, commentY, x+3, commentY+commentH);
+      pdf.setLineWidth(0.3); pdf.setDrawColor(200,200,198);
+
+      pdf.setFont('helvetica','italic'); pdf.setFontSize(8);
+      const hasC = comment && comment.trim().length > 0;
+      pdf.setTextColor(hasC ? 80 : 180, hasC ? 83 : 180, hasC ? 86 : 180);
+      const cLines = pdf.splitTextToSize(hasC ? comment : 'Sin comentario esta semana.', w-12);
+      pdf.text(cLines.slice(0,3), x+6, commentY+6);
+
+      // KPI section label
+      const kpiStartY = commentY + commentH + 4;
+      pdf.setFont('helvetica','bold'); pdf.setFontSize(6.5);
+      pdf.setTextColor(150,150,148);
+      pdf.text('INDICADORES DE LA SEMANA', x+4, kpiStartY);
+
+      // KPI grid: 4 columns, 2 rows
+      const kd = [
+        {lbl:'SALDO INICIAL',  val:kpis.ini,         pos:kpis.ini>=0},
+        {lbl:'INGRESOS',       val:kpis.totalIn,     pos:true},
+        {lbl:'PROV. CRÍTICOS', val:kpis.provCrit,    pos:false},
+        {lbl:'PROV. NO CRIT.', val:kpis.provNoCrit,  pos:false},
+        {lbl:'INTERCOMPAÑÍAS', val:kpis.interco,     pos:false},
+        {lbl:'CORPORATIVO',    val:kpis.corporativo, pos:false},
+        {lbl:'OTROS EGRESOS',  val:kpis.otrosEgr,    pos:false},
+        {lbl:'SALDO FINAL',    val:kpis.fin,         pos:kpis.fin>=0},
+      ];
+
+      const kpiGridY = kpiStartY + 3;
+      const kCols = 4;
+      const kW = (w - 6) / kCols;
+      const kH = 11;
+
+      kd.forEach((k, i) => {
+        const col = i % kCols;
+        const row = Math.floor(i / kCols);
+        const kx = x + 3 + col * kW;
+        const ky = kpiGridY + row * (kH + 1);
+
+        // KPI cell bg
+        pdf.setFillColor(col % 2 === 0 ? 248 : 244, 248, 246);
+        pdf.roundedRect(kx, ky, kW - 1, kH, 1, 1, 'F');
+
+        // Label
+        pdf.setFont('helvetica','normal'); pdf.setFontSize(5.5);
+        pdf.setTextColor(160,160,158);
+        pdf.text(k.lbl, kx+2, ky+4);
+
+        // Value
+        pdf.setFont('helvetica','bold'); pdf.setFontSize(9);
+        if (k.val === 0)  { pdf.setTextColor(190,190,188); pdf.text('—',        kx+2, ky+9.5); }
+        else if (k.pos)   { pdf.setTextColor(42,138,26);   pdf.text(fmt(k.val), kx+2, ky+9.5); }
+        else              { pdf.setTextColor(181,59,42);   pdf.text(fmt(k.val), kx+2, ky+9.5); }
+      });
+    };
+
+    // Layout: 2 cols × 5 rows, card height = 10(hdr)+4+22(comment)+4+7(kpi lbl)+3+24(kpis)+4 = ~78mm
+    const cols2 = 2, rows2 = 5;
+    const cardW = (pageW - margin*2 - 6) / cols2;   // ~133mm each
+    const cardH = 78;
+    const gapX = 6, gapY = 3;
+    const startY = 17;
+    drawPageHeader();
+    COMPANIES.forEach((co, idx) => {
+      if (idx > 0 && idx % 10 === 0) { pdf.addPage(); drawPageHeader(); }
+      const li  = idx % 10;
+      const col = li % cols2;
+      const row = Math.floor(li / cols2);
+      const cx  = margin + col * (cardW + gapX);
+      const cy  = startY + row * (cardH + gapY);
+      drawCard(co, getResKpis(co.id, resWeek), getComment(co.id, resWeek), cx, cy, cardW, cardH);
+    });
+    const tp=pdf.getNumberOfPages();
+    for (let p=1;p<=tp;p++) {
+      pdf.setPage(p);
+      pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(171,171,170);
+      pdf.text(`Página ${p} de ${tp} · Traxion Logística y Tecnología · Confidencial`, pageW/2, pageH-4, {align:'center'});
+    }
+    const filename=`Tesoreria_${wk.label}_${wk.range.replace(/[\/–]/g,'-')}.pdf`;
+    pdf.save(filename);
+    toast('✓ PDF descargado: '+filename, 'ok');
+
+  } catch(err) {
+    console.error('PDF error:', err);
+    toast('Error al generar PDF: '+err.message, '');
+  } finally {
+    if (btn) { btn.textContent='↓ Exportar PDF'; btn.disabled=false; }
+  }
+}
+
+
+function toast(msg,type){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className='toast '+(type||''); el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2600);
+}
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+loadData();
+document.getElementById('nav-date').textContent=new Date().toLocaleDateString('es-MX',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveAll();}});
+renderSidebar('forecast');
+renderSidebar('real');
+</script>
+</body>
+</html>

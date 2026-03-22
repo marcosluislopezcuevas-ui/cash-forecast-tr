@@ -972,7 +972,97 @@ function saveData() {
   localStorage.setItem(SK, JSON.stringify({fdb:FDB, rdb:RDB, cdb:CDB, flast:FLAST, rlast:RLAST, sgf:showGuideF, sgr:showGuideR}));
 }
 
-function getComment(cid, wid) { return CDB[cid]?.[wid] || ''; }
+// ── POWER AUTOMATE / SHAREPOINT SYNC ──────────────────────────────────────
+const PA_WRITE = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/b3f9aba87057410d88456158c0f7adf1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=y1IQPGO_ayRpuSmotLaNW_kI5Elh7XxXjadOxlMojrQ';
+const PA_READ  = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/eb608ece95cc4613a96963688c9270e9/triggers/manual/paths/invoke?api-version=1';
+
+// Build flat array of records for a company+week to send to SharePoint
+function buildRecords(cid, wid, tipo) {
+  const usuario = 'usuario'; // will be replaced with real user later
+  const records = [];
+  const rwid = tipo === 'real' ? rKey(wid) : wid;
+
+  ROWS.filter(r => !r.computed).forEach(row => {
+    const cell = tipo === 'forecast' ? getF(cid, wid, row.id) : getR(cid, wid, row.id);
+    records.push({
+      Empresa:    cid,
+      Semana:     rwid,
+      Tipo:       tipo,
+      Rubro:      row.id,
+      Valor:      pn(cell.v) || 0,
+      Nota:       cell.n || '',
+      Pct:        0,
+      Comentario: '',
+      Usuario:    usuario
+    });
+  });
+
+  // Saldo inicial
+  const saldoCell = tipo === 'forecast' ? getF(cid, wid, 'saldo_ini') : getR(cid, wid, 'saldo_ini');
+  records.push({
+    Empresa: cid, Semana: rwid, Tipo: tipo, Rubro: 'saldo_ini',
+    Valor: pn(saldoCell.v) || 0, Nota: '', Pct: 0, Comentario: '', Usuario: usuario
+  });
+
+  // Comentario
+  const comment = getComment(cid, wid);
+  if (comment) {
+    records.push({
+      Empresa: cid, Semana: rwid, Tipo: 'comentario', Rubro: '',
+      Valor: 0, Nota: '', Pct: 0, Comentario: comment, Usuario: usuario
+    });
+  }
+
+  return records;
+}
+
+// Send records to SharePoint via Power Automate
+async function syncToSharePoint(cid, wid, tipo) {
+  const records = buildRecords(cid, wid, tipo);
+  try {
+    const res = await fetch(PA_WRITE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ registros: records })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return true;
+  } catch(e) {
+    console.error('SharePoint write error:', e);
+    return false;
+  }
+}
+
+// Load records from SharePoint for a company+week
+async function loadFromSharePoint(cid, wid) {
+  const rwid = wid.startsWith('r_') ? rKey(wid) : wid;
+  try {
+    const res = await fetch(PA_READ, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ Empresa: cid, Semana: rwid })
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const items = await res.json();
+    if (!Array.isArray(items)) return;
+
+    items.forEach(item => {
+      const { Empresa, Semana, Tipo, Rubro, Valor, Nota, Comentario } = item;
+      if (Tipo === 'forecast' && Rubro) {
+        setF(Empresa, Semana, Rubro, 'v', Valor ? String(Valor) : '');
+        if (Nota) setF(Empresa, Semana, Rubro, 'n', Nota);
+      } else if (Tipo === 'real' && Rubro) {
+        setR(Empresa, 'r_'+Semana, Rubro, 'v', Valor ? String(Valor) : '');
+        if (Nota) setR(Empresa, 'r_'+Semana, Rubro, 'n', Nota);
+      } else if (Tipo === 'comentario') {
+        setComment(Empresa, Semana, Comentario || '');
+      }
+    });
+    saveData(); // update localStorage cache
+  } catch(e) {
+    console.error('SharePoint read error:', e);
+  }
+}
 function setComment(cid, wid, txt) {
   if (!CDB[cid]) CDB[cid] = {};
   CDB[cid][wid] = txt;
@@ -1466,10 +1556,25 @@ function renderGrid(mode) {
 }
 
 // ── INTERACTIONS ───────────────────────────────────────────────────────────
-function selectCo(mode, cid) {
-  if (mode==='forecast') { activeFCo=cid; activeFWk=WEEKS[0].id; }
-  else                   { activeRCo=cid; activeRWk=WEEKS[0].id; }
+async function selectCo(mode, cid) {
+  if (mode==='forecast') { activeFCo=cid; activeFWk=getCurrentWeekId(WEEKS); }
+  else                   { activeRCo=cid; activeRWk=getCurrentWeekId(REAL_WEEKS); }
   renderSidebar(mode); renderContent(mode);
+
+  // Load all weeks for this company from SharePoint
+  toast('⏳ Cargando datos…', '');
+  const wkPool = mode==='forecast' ? WEEKS : REAL_WEEKS;
+  const tipo   = mode==='forecast' ? 'forecast' : 'real';
+  // Load current week first for speed, then rest in background
+  const curWid = mode==='forecast' ? activeFWk : activeRWk;
+  await loadFromSharePoint(cid, curWid);
+  renderContent(mode);
+  toast('✓ Datos cargados', 'ok');
+
+  // Load remaining weeks in background
+  wkPool.forEach(w => {
+    if (w.id !== curWid) loadFromSharePoint(cid, w.id);
+  });
 }
 function selectWk(mode, wid) {
   if (mode==='forecast') activeFWk=wid; else activeRWk=wid;
@@ -1533,12 +1638,27 @@ function closeGuide(mode) {
   if(mode==='forecast'){showGuideF=false;} else {showGuideR=false;}
   saveData(); renderContent(mode);
 }
-function saveAll() {
+async function saveAll() {
+  const cid  = activeTab==='forecast' ? activeFCo : activeRCo;
+  const wid  = activeTab==='forecast' ? activeFWk : activeRWk;
+  const tipo = activeTab==='forecast' ? 'forecast' : 'real';
+
   if(activeTab==='forecast' && activeFCo) FLAST[activeFCo]=new Date().toISOString();
   if(activeTab==='real'     && activeRCo) RLAST[activeRCo]=new Date().toISOString();
-  saveData(); renderSidebar('forecast'); renderSidebar('real');
-  const name = activeTab==='forecast' ? (activeFCo?COMPANIES.find(c=>c.id===activeFCo)?.name:'') : (activeRCo?COMPANIES.find(c=>c.id===activeRCo)?.name:'');
-  toast(`✓ Datos guardados${name?' · '+name:''}`, 'ok');
+  saveData();
+  renderSidebar('forecast'); renderSidebar('real');
+
+  const name = cid ? COMPANIES.find(c=>c.id===cid)?.name : '';
+  toast(`⏳ Guardando${name?' · '+name:''}…`, '');
+
+  // Sync to SharePoint
+  if (cid && wid) {
+    const ok = await syncToSharePoint(cid, wid, tipo);
+    toast(ok ? `✓ Guardado en SharePoint${name?' · '+name:''}` : `✓ Guardado local (SharePoint no disponible)`, 'ok');
+  } else {
+    toast('✓ Datos guardados', 'ok');
+  }
+
   if(activeFCo) renderContent('forecast');
   if(activeRCo) renderContent('real');
 }

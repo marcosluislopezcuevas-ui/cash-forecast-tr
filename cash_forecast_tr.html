@@ -980,7 +980,7 @@ function setComment(cid, wid, txt) {
 
 // ── POWER AUTOMATE / SHAREPOINT SYNC ──────────────────────────────────────
 const PA_WRITE = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/b3f9aba87057410d88456158c0f7adf1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=y1IQPGO_ayRpuSmotLaNW_kI5Elh7XxXjadOxlMojrQ';
-const PA_READ  = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/eb608ece95cc4613a96963688c9270e9/triggers/manual/paths/invoke?api-version=1';
+const PA_READ  = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/eb608ece95cc4613a96963688c9270e9/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=PQRTI2x_q-cw9RXqGqGEv5QoEDgA9hbVxJgM7JYafHc';
 
 // Build flat array of records for a company+week to send to SharePoint
 function buildRecords(cid, wid, tipo) {

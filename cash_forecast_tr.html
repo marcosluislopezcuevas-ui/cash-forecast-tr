@@ -630,6 +630,76 @@ body { background: var(--white); color: var(--text); font-family: var(--fb); fon
   @page { margin: 1.5cm; size: A4 landscape; }
 }
 
+/* ── ANÁLISIS SEMANAL ── */
+.analisis-wrap { padding:24px 32px 80px; }
+.analisis-filter-bar {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:16px 20px; margin-bottom:20px;
+}
+.analisis-section { margin-bottom:28px; }
+.analisis-section-title {
+  font-family:var(--fh); font-weight:800; font-size:15px; letter-spacing:0.06em;
+  text-transform:uppercase; color:var(--text); margin-bottom:10px;
+  display:flex; align-items:center; gap:10px;
+}
+.analisis-badge {
+  font-size:11px; font-weight:700; padding:3px 9px; border-radius:4px; letter-spacing:0.08em;
+}
+.analisis-badge.forecast-badge { background:var(--lime); color:var(--gray-10); }
+.analisis-badge.real-badge      { background:var(--real-color); color:var(--white); }
+
+.analisis-table-wrap {
+  overflow-x:auto; border:1px solid var(--border); border-radius:var(--radius-lg);
+  max-height:520px; overflow-y:auto;
+}
+.analisis-table {
+  width:100%; border-collapse:collapse; font-size:13px; font-family:var(--fb);
+  min-width:900px;
+}
+.analisis-table thead th {
+  position:sticky; top:0; z-index:10;
+  background:var(--surface2); border-bottom:2px solid var(--border-med);
+  font-family:var(--fh); font-weight:700; font-size:11px; letter-spacing:0.1em;
+  text-transform:uppercase; color:var(--text-dim); padding:9px 12px;
+  white-space:nowrap; text-align:right;
+}
+.analisis-table thead th:first-child { text-align:left; position:sticky; left:0; z-index:20; background:var(--surface2); min-width:190px; }
+.analisis-table tbody td {
+  padding:8px 12px; border-bottom:1px solid var(--border); text-align:right;
+  white-space:nowrap;
+}
+.analisis-table tbody td:first-child {
+  text-align:left; position:sticky; left:0; z-index:5;
+  background:var(--white); font-weight:600; font-size:13px;
+  border-right:2px solid var(--border-med);
+}
+.analisis-table tfoot td {
+  position:sticky; bottom:0; z-index:10;
+  background:var(--lime-bg); border-top:2px solid var(--lime-dark);
+  font-weight:700; font-family:var(--fh); font-size:13px; padding:9px 12px;
+  text-align:right; white-space:nowrap;
+}
+.analisis-table tfoot td:first-child {
+  text-align:left; position:sticky; left:0; z-index:20;
+  background:var(--lime-bg); border-right:2px solid var(--border-med);
+  font-family:var(--fh); font-weight:800; letter-spacing:0.06em; text-transform:uppercase;
+}
+.analisis-table tfoot.real-foot td { background:var(--real-bg); border-top-color:var(--real-color); }
+.analisis-table tfoot.real-foot td:first-child { background:var(--real-bg); }
+
+.an-row-sec td { background:var(--surface2)!important; font-family:var(--fh)!important; font-weight:800!important; font-size:11px!important; letter-spacing:0.1em!important; text-transform:uppercase!important; color:var(--text-muted)!important; padding:6px 12px!important; border-bottom:none!important; }
+.an-row-sec td:first-child { border-right:2px solid var(--border-med)!important; }
+.an-row-ini td:first-child { background:var(--pos-bg)!important; }
+.an-row-ini td { background:var(--pos-bg)!important; color:var(--pos-color)!important; font-weight:700!important; }
+.an-row-in td:first-child  { background:var(--in-bg)!important;  color:var(--in-color)!important;  }
+.an-row-out td:first-child { background:var(--out-bg)!important; color:var(--out-color)!important; }
+.cv-pos  { color:var(--in-color);   font-weight:600; }
+.cv-neg  { color:var(--out-color);  font-weight:600; }
+.cv-blue { color:var(--pos-color);  font-weight:600; }
+.cv-lime { color:var(--lime-deep);  font-weight:700; }
+.cv-zero { color:var(--text-dim);   font-weight:400; }
+.cv-real { color:var(--real-color); font-weight:600; }
+
 /* ── MISC ── */
 .toast { position:fixed; bottom:80px; right:32px; z-index:999; background:var(--text); color:var(--white); font-size:15px; font-weight:500; padding:11px 20px; border-radius:var(--radius); opacity:0; transform:translateY(6px); pointer-events:none; transition:all 0.22s; }
 .toast.show { opacity:1; transform:translateY(0); }
@@ -651,6 +721,7 @@ body { background: var(--white); color: var(--text); font-family: var(--fb); fon
     <button class="nav-tab real-tab"  id="tab-real"        onclick="switchTab('real')">Real</button>
     <button class="nav-tab"           id="tab-consolidado" onclick="switchTab('consolidado')">Consolidado</button>
     <button class="nav-tab"           id="tab-comparativo" onclick="switchTab('comparativo')">Comparativo</button>
+    <button class="nav-tab"           id="tab-analisis"    onclick="switchTab('analisis')">Análisis Semanal</button>
     <button class="nav-tab"           id="tab-resumen"     onclick="switchTab('resumen')">Resumen</button>
   </div>
   <div class="nav-spacer"></div>
@@ -851,6 +922,45 @@ body { background: var(--white); color: var(--text); font-family: var(--fb); fon
   <div class="kpi-block"><div class="kpi-lbl">Saldo final</div><div class="kpi-val" id="k-r-fin">—</div></div>
 </div>
 
+<!-- ── ANÁLISIS SEMANAL TAB ───────────────────────────── -->
+<div class="page-scroll" id="page-analisis">
+  <div class="analisis-wrap">
+    <!-- Filters -->
+    <div class="analisis-filter-bar">
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <div>
+          <div class="bk-filter-label" style="margin-bottom:6px;">Empresa</div>
+          <div id="analisis-co-chips" class="bk-co-chips"></div>
+        </div>
+        <div>
+          <div class="bk-filter-label" style="margin-bottom:6px;">Mes</div>
+          <div id="analisis-mo-chips" class="bk-week-chips"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Forecast Table -->
+    <div class="analisis-section">
+      <div class="analisis-section-title">
+        <span class="analisis-badge forecast-badge">FORECAST</span>
+        Proyección semanal por rubro
+      </div>
+      <div class="analisis-table-wrap" id="analisis-forecast-wrap">
+        <div id="analisis-forecast-table"></div>
+      </div>
+    </div>
+    <!-- Real Table -->
+    <div class="analisis-section">
+      <div class="analisis-section-title">
+        <span class="analisis-badge real-badge">REAL</span>
+        Cifras reales por rubro
+      </div>
+      <div class="analisis-table-wrap" id="analisis-real-wrap">
+        <div id="analisis-real-table"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -876,24 +986,25 @@ const COMPANIES = [
 ];
 
 const ROWS = [
-  {id:'saldo_ini',   label:'Saldo inicial',           hint:'Posición bancaria al inicio',        section:'pos', computed:true},
-  {id:'cobranza',    label:'Cobranza',                hint:'Cobros de clientes proyectados',     section:'in'},
-  {id:'ing_fin',     label:'Ingresos financieros',    hint:'Intereses, rendimientos',            section:'in'},
-  {id:'otros_ing',   label:'Otros ingresos',          hint:'Devoluciones IVA, activos, etc.',   section:'in'},
-  {id:'prov_crit',   label:'Proveedores críticos',    hint:'Pagos no diferibles',               section:'out'},
-  {id:'prov_no_crit',label:'Proveedores no críticos', hint:'Diferibles si aplica',              section:'out'},
-  {id:'interco',     label:'Intercompañías',          hint:'Pagos a otras entidades del grupo', section:'out'},
-  {id:'nominas',     label:'Nóminas',                 hint:'Nómina, comisiones, IMSS',         section:'out'},
-  {id:'impuestos',   label:'Impuestos',               hint:'ISR, IVA, IMSS, INFONAVIT',        section:'out'},
-  {id:'gasto_fin',   label:'Gastos financieros',      hint:'Intereses, comisiones bancarias',   section:'out'},
-  {id:'capex',       label:'CAPEX',                   hint:'Inversión en activos fijos',        section:'out'},
-  {id:'corporativo', label:'Corporativo',              hint:'Cargos corporativos / holding',      section:'out'},
-  {id:'otros_egr',   label:'Otros egresos',            hint:'Otros',                             section:'out'},
-  {id:'saldo_fin',   label:'Saldo final',             hint:'Calculado automáticamente',         section:'pos', computed:true},
+  {id:'saldo_ini',    label:'Saldo inicial',              hint:'Posición bancaria al inicio',        section:'pos', computed:true},
+  {id:'cobranza',     label:'Cobranza',                   hint:'Cobros de clientes proyectados',     section:'in'},
+  {id:'ing_fin',      label:'Ingresos financieros',       hint:'Intereses, rendimientos',            section:'in'},
+  {id:'otros_ing',    label:'Otros ingresos',             hint:'Devoluciones IVA, activos, etc.',    section:'in'},
+  {id:'prov_crit',    label:'Proveedores Críticos',       hint:'Pagos no diferibles',                section:'out'},
+  {id:'factoraje',    label:'Factoraje',                  hint:'Pagos de factoraje',                 section:'out'},
+  {id:'prov_no_crit', label:'Proveedores No Críticos',    hint:'Diferibles si aplica',               section:'out'},
+  {id:'tarjeta_reimb',label:'Tarjeta de Crédito y Reembolsos', hint:'Gastos con tarjeta y reembolsos', section:'out'},
+  {id:'interco_op',   label:'Intercos Operativas',        hint:'Pagos intercompañía operativos',     section:'out'},
+  {id:'interco_trx',  label:'Intercos Traxion',           hint:'Pagos a corporativo Traxion',        section:'out'},
+  {id:'nominas',      label:'Nómina y Relacionado',       hint:'Nómina, comisiones, IMSS',           section:'out'},
+  {id:'capex',        label:'CAPEX',                      hint:'Inversión en activos fijos',         section:'out'},
+  {id:'impuestos',    label:'Impuestos',                  hint:'ISR, IVA, IMSS, INFONAVIT',          section:'out'},
+  {id:'gasto_fin',    label:'Gastos Financieros',         hint:'Intereses, comisiones bancarias',    section:'out'},
+  {id:'saldo_fin',    label:'Saldo final',                hint:'Calculado automáticamente',          section:'pos', computed:true},
 ];
 
 const IN_ROWS  = ['cobranza','ing_fin','otros_ing'];
-const OUT_ROWS = ['prov_crit','prov_no_crit','interco','nominas','impuestos','gasto_fin','capex','corporativo','otros_egr'];
+const OUT_ROWS = ['prov_crit','factoraje','prov_no_crit','tarjeta_reimb','interco_op','interco_trx','nominas','capex','impuestos','gasto_fin'];
 
 // Generate all weeks of the current year (S1–S52/53)
 function getWeeks() {
@@ -980,7 +1091,7 @@ function setComment(cid, wid, txt) {
 
 // ── POWER AUTOMATE / SHAREPOINT SYNC ──────────────────────────────────────
 const PA_WRITE = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/b3f9aba87057410d88456158c0f7adf1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=y1IQPGO_ayRpuSmotLaNW_kI5Elh7XxXjadOxlMojrQ';
-const PA_READ  = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/eb608ece95cc4613a96963688c9270e9/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=PQRTI2x_q-cw9RXqGqGEv5QoEDgA9hbVxJgM7JYafHc';
+const PA_READ  = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/eb608ece95cc4613a96963688c9270e9/triggers/manual/paths/invoke?api-version=1';
 
 // Build flat array of records for a company+week to send to SharePoint
 function buildRecords(cid, wid, tipo) {
@@ -1092,13 +1203,13 @@ const pn = v => parseFloat(String(v||'').replace(/[$,\s]/g,'')) || 0;
 function totalsF(cid,wid) {
   const g = r => pn(getF(cid,wid,r).v);
   const ini=g('saldo_ini'), totalIn=g('cobranza')+g('ing_fin')+g('otros_ing');
-  const totalOut=g('prov_crit')+g('prov_no_crit')+g('interco')+g('nominas')+g('impuestos')+g('gasto_fin')+g('capex')+g('otros_egr');
+  const totalOut=g('prov_crit')+g('factoraje')+g('prov_no_crit')+g('tarjeta_reimb')+g('interco_op')+g('interco_trx')+g('nominas')+g('capex')+g('impuestos')+g('gasto_fin');
   return {ini, totalIn, totalOut, neto:totalIn-totalOut, fin:ini+totalIn-totalOut};
 }
 function totalsR(cid,wid) {
   const g = r => pn(getR(cid,wid,r).v); // getR already applies rKey internally
   const ini=g('saldo_ini'), totalIn=g('cobranza')+g('ing_fin')+g('otros_ing');
-  const totalOut=g('prov_crit')+g('prov_no_crit')+g('interco')+g('nominas')+g('impuestos')+g('gasto_fin')+g('capex')+g('otros_egr');
+  const totalOut=g('prov_crit')+g('factoraje')+g('prov_no_crit')+g('tarjeta_reimb')+g('interco_op')+g('interco_trx')+g('nominas')+g('capex')+g('impuestos')+g('gasto_fin');
   return {ini, totalIn, totalOut, neto:totalIn-totalOut, fin:ini+totalIn-totalOut};
 }
 
@@ -1160,13 +1271,13 @@ bkWeek    = getCurrentWeekId(WEEKS);
 // ── TAB SWITCHING ──────────────────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
-  ['forecast','real','consolidado','comparativo','resumen'].forEach(t => {
+  ['forecast','real','consolidado','comparativo','analisis','resumen'].forEach(t => {
     const p = document.getElementById('page-'+t);
     if (p) { p.classList.remove('active'); }
   });
   const pg = document.getElementById('page-'+tab);
   if (pg) pg.classList.add('active');
-  ['tab-forecast','tab-real','tab-consolidado','tab-comparativo','tab-resumen'].forEach(id => {
+  ['tab-forecast','tab-real','tab-consolidado','tab-comparativo','tab-analisis','tab-resumen'].forEach(id => {
     document.getElementById(id)?.classList.remove('active');
   });
   document.getElementById('tab-'+tab)?.classList.add('active');
@@ -1176,6 +1287,7 @@ function switchTab(tab) {
 
   if (tab==='consolidado') renderConsolidado();
   if (tab==='comparativo') renderComparativo();
+  if (tab==='analisis')    renderAnalisis();
   if (tab==='resumen')     renderResumen();
 }
 
@@ -1689,14 +1801,18 @@ function exportCSV() {
 
 // ── CONSOLIDADO ────────────────────────────────────────────────────────────
 let selectedCos = new Set(COMPANIES.map(c=>c.id));
-// scenPct[cid][wid][rid] = -50..+50  (per company, per week, per rubro)
-let scenPct = {};
-function getScenPct(cid, rid) { return scenPct[cid]?.[bkWeek]?.[rid] || 0; }
-function setScenPct(cid, rid, val) {
-  if (!scenPct[cid]) scenPct[cid] = {};
-  if (!scenPct[cid][bkWeek]) scenPct[cid][bkWeek] = {};
-  scenPct[cid][bkWeek][rid] = Math.min(50, Math.max(-50, parseInt(val) || 0));
+// scenAdj[cid][wid][rid] = absolute MXN adjustment (per company, per week, per rubro)
+// scenAdj[cid][wid][rid] = absolute MXN adjustment (+/-)
+let scenAdj = {};
+function getScenAdj(cid, rid) { return scenAdj[cid]?.[bkWeek]?.[rid] || 0; }
+function setScenAdj(cid, rid, val) {
+  if (!scenAdj[cid]) scenAdj[cid] = {};
+  if (!scenAdj[cid][bkWeek]) scenAdj[cid][bkWeek] = {};
+  scenAdj[cid][bkWeek][rid] = parseFloat(val) || 0;
 }
+// Compatibility alias — getScenPct now returns 0 always (matrix uses absolute)
+function getScenPct(cid, rid) { return 0; }
+function setScenPct(cid, rid, val) {}
 let saldoChart=null;
 
 function consTimeline(dir) {
@@ -1705,8 +1821,8 @@ function consTimeline(dir) {
   return WEEKS.map(wk=>{
     let tin=0,tout=0;
     selectedCos.forEach(cid=>{
-      IN_ROWS.forEach(r=>  { tin  += pn(getF(cid,wk.id,r).v)*(1+dir*(scenPct[cid]?.[wk.id]?.[r]||0)/100); });
-      OUT_ROWS.forEach(r=> { tout += pn(getF(cid,wk.id,r).v)*(1+dir*(scenPct[cid]?.[wk.id]?.[r]||0)/100); });
+      IN_ROWS.forEach(r=>  { tin  += pn(getF(cid,wk.id,r).v) + dir*(scenAdj[cid]?.[wk.id]?.[r]||0); });
+      OUT_ROWS.forEach(r=> { tout += pn(getF(cid,wk.id,r).v) + dir*(scenAdj[cid]?.[wk.id]?.[r]||0); });
     });
     runBal = runBal+tin-tout; return runBal;
   });
@@ -1770,9 +1886,8 @@ function renderScenMatrix() {
   const allRows = [...IN_ROWS, ...OUT_ROWS];
   const cos = COMPANIES.filter(c => selectedCos.has(c.id));
 
-  // Column headers = companies
   const coHdrs = cos.map(c =>
-    `<th style="min-width:72px;text-align:center;">
+    `<th style="min-width:110px;text-align:center;">
       ${c.short}<br><span style="font-weight:400;font-size:8px;color:var(--text-dim);">${c.name.split(' ')[0]}</span>
     </th>`
   ).join('');
@@ -1780,19 +1895,18 @@ function renderScenMatrix() {
   let html = `<table class="scen-mx-table">
     <thead>
       <tr>
-        <th style="min-width:140px;">Rubro</th>
+        <th style="min-width:160px;">Rubro</th>
         ${coHdrs}
         <td style="min-width:60px;"></td>
       </tr>
     </thead>
     <tbody>`;
 
-  // Section separator rows — clickable to collapse
   const renderSectionHdr = (label, cls, section) => {
     const col = mxCollapsed[section];
     const icon = col ? '▶' : '▼';
     const countActive = (section === 'in' ? IN_ROWS : OUT_ROWS)
-      .reduce((s, r) => s + cos.filter(c => getScenPct(c.id,r)!==0).length, 0);
+      .reduce((s, r) => s + cos.filter(c => getScenAdj(c.id,r)!==0).length, 0);
     const badge = countActive > 0
       ? `<span style="font-size:9px;background:var(--white);border-radius:3px;padding:1px 5px;margin-left:6px;opacity:0.9;">${countActive} ajuste${countActive>1?'s':''}</span>`
       : '';
@@ -1806,15 +1920,16 @@ function renderScenMatrix() {
   html += renderSectionHdr('Ingresos', 'in-hdr', 'in');
   IN_ROWS.forEach(rid => {
     const row = ROWS.find(r => r.id === rid);
-    const hasAny = cos.some(c => getScenPct(c.id, rid) !== 0);
+    const hasAny = cos.some(c => getScenAdj(c.id, rid) !== 0);
     const cells = cos.map(c => {
-      const pct = getScenPct(c.id, rid);
-      const cls = pct > 0 ? 'pos' : pct < 0 ? 'neg' : 'zero';
-      const bg  = pct > 0 ? 'background:var(--in-bg);' : pct < 0 ? 'background:var(--out-bg);' : '';
+      const adj = getScenAdj(c.id, rid);
+      const cls = adj > 0 ? 'pos' : adj < 0 ? 'neg' : 'zero';
+      const bg  = adj > 0 ? 'background:var(--in-bg);' : adj < 0 ? 'background:var(--out-bg);' : '';
       return `<td style="${bg}">
         <div class="mx-spinner">
           <button class="mx-spin-btn" onclick="stepMx('${c.id}','${rid}',-1)">▼</button>
-          <input class="mx-spin-input ${cls}" type="number" min="-50" max="50" step="1" value="${pct}"
+          <input class="mx-spin-input ${cls}" type="number" step="1000" value="${adj}"
+            style="width:72px;"
             oninput="updateMx('${c.id}','${rid}',this.value,false)"
             onblur="blurMx('${c.id}','${rid}',this.value)">
           <button class="mx-spin-btn" onclick="stepMx('${c.id}','${rid}',1)">▲</button>
@@ -1832,16 +1947,17 @@ function renderScenMatrix() {
   html += renderSectionHdr('Egresos', 'out-hdr', 'out');
   OUT_ROWS.forEach(rid => {
     const row = ROWS.find(r => r.id === rid);
-    const hasAny = cos.some(c => getScenPct(c.id, rid) !== 0);
+    const hasAny = cos.some(c => getScenAdj(c.id, rid) !== 0);
     const cells = cos.map(c => {
-      const pct = getScenPct(c.id, rid);
-      // For egresos: increase (pos) = bad = red, decrease (neg) = good = green
-      const cls = pct > 0 ? 'neg' : pct < 0 ? 'pos' : 'zero';
-      const bg  = pct > 0 ? 'background:var(--out-bg);' : pct < 0 ? 'background:var(--in-bg);' : '';
+      const adj = getScenAdj(c.id, rid);
+      // For egresos: increase = bad = red, decrease = good = green
+      const cls = adj > 0 ? 'neg' : adj < 0 ? 'pos' : 'zero';
+      const bg  = adj > 0 ? 'background:var(--out-bg);' : adj < 0 ? 'background:var(--in-bg);' : '';
       return `<td style="${bg}">
         <div class="mx-spinner">
           <button class="mx-spin-btn" onclick="stepMx('${c.id}','${rid}',-1)">▼</button>
-          <input class="mx-spin-input ${cls}" type="number" min="-50" max="50" step="1" value="${pct}"
+          <input class="mx-spin-input ${cls}" type="number" step="1000" value="${adj}"
+            style="width:72px;"
             oninput="updateMx('${c.id}','${rid}',this.value,false)"
             onblur="blurMx('${c.id}','${rid}',this.value)">
           <button class="mx-spin-btn" onclick="stepMx('${c.id}','${rid}',1)">▲</button>
@@ -1856,7 +1972,6 @@ function renderScenMatrix() {
     </tr>`;
   });
 
-  // Reset per-company buttons as a footer row
   const resetBtns = cos.map(c =>
     `<td style="text-align:center;"><button class="row-reset-btn" onclick="resetCoSliders('${c.id}')">Reset</button></td>`
   ).join('');
@@ -1869,10 +1984,9 @@ function renderScenMatrix() {
   html += `</tbody></table>`;
   el.innerHTML = html;
 
-  // Badge — count adjustments for current bkWeek only
   let totalChanged = 0;
   const allRows2 = [...IN_ROWS,...OUT_ROWS];
-  COMPANIES.forEach(co => { allRows2.forEach(r => { if(getScenPct(co.id,r)!==0) totalChanged++; }); });
+  COMPANIES.forEach(co => { allRows2.forEach(r => { if(getScenAdj(co.id,r)!==0) totalChanged++; }); });
   const wkObj = WEEKS.find(w=>w.id===bkWeek);
   const sumEl = document.getElementById('scen-matrix-summary');
   if (sumEl) {
@@ -1885,7 +1999,7 @@ function renderScenMatrix() {
 
 function updateMx(cid, rid, val, rerender) {
   if (!bkWeek) bkWeek = getCurrentWeekId(WEEKS);
-  setScenPct(cid, rid, val);
+  setScenAdj(cid, rid, val);
   if (rerender !== false) {
     renderScenMatrix();
   }
@@ -1894,23 +2008,21 @@ function updateMx(cid, rid, val, rerender) {
 }
 function stepMx(cid, rid, delta) {
   if (!bkWeek) bkWeek = getCurrentWeekId(WEEKS);
-  updateMx(cid, rid, getScenPct(cid, rid) + delta, true);
+  updateMx(cid, rid, getScenAdj(cid, rid) + delta * 1000, true);
 }
 function blurMx(cid, rid, val) {
-  // Called on blur — re-render matrix to update colors/highlights
   if (!bkWeek) bkWeek = getCurrentWeekId(WEEKS);
-  setScenPct(cid, rid, val);
+  setScenAdj(cid, rid, val);
   renderScenMatrix();
   renderSaldoChart(); renderConsKpis();
   renderBreakdownTable();
 }
 function resetCoSliders(cid) {
-  if (scenPct[cid]) scenPct[cid][bkWeek] = {};
+  if (scenAdj[cid]) scenAdj[cid][bkWeek] = {};
   renderScenMatrix(); renderSaldoChart(); renderConsKpis(); renderBreakdownTable();
 }
 function resetAllSliders() {
-  // Reset only current week across all companies
-  COMPANIES.forEach(c => { if(scenPct[c.id]) scenPct[c.id][bkWeek] = {}; });
+  COMPANIES.forEach(c => { if(scenAdj[c.id]) scenAdj[c.id][bkWeek] = {}; });
   renderConsolidado();
 }
 function updateSlider(rid,val){} // kept for compatibility
@@ -1934,8 +2046,8 @@ function renderSaldoChart() {
     return WEEKS.map(wk => {
       let tin=0, tout=0;
       selectedCos.forEach(cid => {
-        IN_ROWS.forEach(r  => { tin  += pn(getF(cid,wk.id,r).v) * (1 + (scenPct[cid]?.[wk.id]?.[r]||0)/100); });
-        OUT_ROWS.forEach(r => { tout += pn(getF(cid,wk.id,r).v) * (1 + (scenPct[cid]?.[wk.id]?.[r]||0)/100); });
+        IN_ROWS.forEach(r  => { tin  += pn(getF(cid,wk.id,r).v) + (scenAdj[cid]?.[wk.id]?.[r]||0); });
+        OUT_ROWS.forEach(r => { tout += pn(getF(cid,wk.id,r).v) + (scenAdj[cid]?.[wk.id]?.[r]||0); });
       });
       bal = bal + tin - tout;
       return bal;
@@ -2090,11 +2202,11 @@ function renderBreakdownTable() {
     </thead>
     <tbody>`;
 
-  // Helper: get adjusted value (applies scenPct if set)
+  // Helper: get adjusted value (applies scenAdj if set)
   const gAdj = (cid, rid) => {
     const base = pn(getF(cid, bkWeek, rid).v);
-    const pct  = getScenPct(cid, rid);
-    return base * (1 + pct / 100);
+    const adj  = getScenAdj(cid, rid);
+    return base + adj;
   };
 
   // Helper: value cell — inline, no wrapper div
@@ -2419,15 +2531,18 @@ function setResWeek(wid) { resWeek = wid; renderResWeekChips(); renderResContent
 function getResKpis(cid, wid) {
   const T = totalsF(cid, wid);
   const g = rid => pn(getF(cid,wid,rid).v);
-  const otrosEgr = g('impuestos') + g('gasto_fin') + g('capex') + g('otros_egr');
+  const intercos = g('interco_op') + g('interco_trx');
+  const otrosEgr = g('capex') + g('impuestos') + g('gasto_fin');
   return {
-    ini:         T.ini,
-    totalIn:     T.totalIn,
-    fin:         T.fin,
-    provCrit:    g('prov_crit'),
-    provNoCrit:  g('prov_no_crit'),
-    interco:     g('interco'),
-    corporativo: g('corporativo'),
+    ini:          T.ini,
+    totalIn:      T.totalIn,
+    fin:          T.fin,
+    provCrit:     g('prov_crit'),
+    factoraje:    g('factoraje'),
+    provNoCrit:   g('prov_no_crit'),
+    tarjetaReimb: g('tarjeta_reimb'),
+    intercos,
+    nominas:      g('nominas'),
     otrosEgr,
   };
 }
@@ -2465,14 +2580,16 @@ function renderResContent() {
       <div class="res-card-body">
         <div class="res-comment${!comment?' empty':''}">${comment || 'Sin comentario esta semana.'}</div>
         <div class="res-kpis">
-          ${kpiBlock('Saldo inicial',        kpis.ini,        kpis.ini>=0?'v-blue':'v-neg')}
-          ${kpiBlock('Total ingresos',        kpis.totalIn,    'v-pos')}
-          ${kpiBlock('Prov. críticos',        kpis.provCrit,   kpis.provCrit>0?'v-neg':'v-muted')}
-          ${kpiBlock('Prov. no críticos',     kpis.provNoCrit, kpis.provNoCrit>0?'v-neg':'v-muted')}
-          ${kpiBlock('Intercompañías',        kpis.interco,    kpis.interco>0?'v-neg':'v-muted')}
-          ${kpiBlock('Corporativo',           kpis.corporativo,kpis.corporativo>0?'v-neg':'v-muted')}
-          ${kpiBlock('Otros egresos',         kpis.otrosEgr,   kpis.otrosEgr>0?'v-neg':'v-muted')}
-          ${kpiBlock('Saldo final',           kpis.fin,        kpis.fin>=0?'v-lime':'v-neg')}
+          ${kpiBlock('Saldo inicial',          kpis.ini,          kpis.ini>=0?'v-blue':'v-neg')}
+          ${kpiBlock('Total ingresos',          kpis.totalIn,      'v-pos')}
+          ${kpiBlock('Prov. Críticos',          kpis.provCrit,     kpis.provCrit>0?'v-neg':'v-muted')}
+          ${kpiBlock('Factoraje',               kpis.factoraje,    kpis.factoraje>0?'v-neg':'v-muted')}
+          ${kpiBlock('Prov. No Críticos',       kpis.provNoCrit,   kpis.provNoCrit>0?'v-neg':'v-muted')}
+          ${kpiBlock('Tarjeta y Reembolsos',    kpis.tarjetaReimb, kpis.tarjetaReimb>0?'v-neg':'v-muted')}
+          ${kpiBlock('Intercompañías',          kpis.intercos,     kpis.intercos>0?'v-neg':'v-muted')}
+          ${kpiBlock('Nómina',                  kpis.nominas,      kpis.nominas>0?'v-neg':'v-muted')}
+          ${kpiBlock('CAPEX / Imp. / Gasto Fin.',kpis.otrosEgr,   kpis.otrosEgr>0?'v-neg':'v-muted')}
+          ${kpiBlock('Saldo final',             kpis.fin,          kpis.fin>=0?'v-lime':'v-neg')}
         </div>
       </div>
     </div>`;
@@ -2559,16 +2676,18 @@ async function exportResumenPDF() {
       pdf.setTextColor(150,150,148);
       pdf.text('INDICADORES DE LA SEMANA', x+4, kpiStartY);
 
-      // KPI grid: 4 columns, 2 rows
+      // KPI grid: 4 columns, 3 rows
       const kd = [
-        {lbl:'SALDO INICIAL',  val:kpis.ini,         pos:kpis.ini>=0},
-        {lbl:'INGRESOS',       val:kpis.totalIn,     pos:true},
-        {lbl:'PROV. CRÍTICOS', val:kpis.provCrit,    pos:false},
-        {lbl:'PROV. NO CRIT.', val:kpis.provNoCrit,  pos:false},
-        {lbl:'INTERCOMPAÑÍAS', val:kpis.interco,     pos:false},
-        {lbl:'CORPORATIVO',    val:kpis.corporativo, pos:false},
-        {lbl:'OTROS EGRESOS',  val:kpis.otrosEgr,    pos:false},
-        {lbl:'SALDO FINAL',    val:kpis.fin,         pos:kpis.fin>=0},
+        {lbl:'SALDO INICIAL',    val:kpis.ini,          pos:kpis.ini>=0},
+        {lbl:'INGRESOS',         val:kpis.totalIn,      pos:true},
+        {lbl:'PROV. CRÍTICOS',   val:kpis.provCrit,     pos:false},
+        {lbl:'FACTORAJE',        val:kpis.factoraje,    pos:false},
+        {lbl:'PROV. NO CRIT.',   val:kpis.provNoCrit,   pos:false},
+        {lbl:'TARJETA/REEMB.',   val:kpis.tarjetaReimb, pos:false},
+        {lbl:'INTERCOMPAÑÍAS',   val:kpis.intercos,     pos:false},
+        {lbl:'NÓMINA',           val:kpis.nominas,      pos:false},
+        {lbl:'CAPEX/IMP/GFIN',   val:kpis.otrosEgr,    pos:false},
+        {lbl:'SALDO FINAL',      val:kpis.fin,          pos:kpis.fin>=0},
       ];
 
       const kpiGridY = kpiStartY + 3;
@@ -2633,6 +2752,138 @@ async function exportResumenPDF() {
   }
 }
 
+
+// ── ANÁLISIS SEMANAL ───────────────────────────────────────────────────────
+let analisisCo = COMPANIES[0].id;
+let analisisMo = null; // null = all months
+
+function renderAnalisis() {
+  renderAnalisisFilters();
+  renderAnalisisTable('forecast');
+  renderAnalisisTable('real');
+}
+
+function renderAnalisisFilters() {
+  // Company chips — single select
+  const coEl = document.getElementById('analisis-co-chips'); if (!coEl) return;
+  coEl.innerHTML = COMPANIES.map(c =>
+    `<div class="co-chip${analisisCo===c.id?' selected':''}" onclick="setAnalisisCo('${c.id}')">${c.short} · ${c.name}</div>`
+  ).join('');
+
+  // Month chips
+  const months = [...new Set(WEEKS.map(w => w.month))];
+  const moEl = document.getElementById('analisis-mo-chips'); if (!moEl) return;
+  moEl.innerHTML =
+    `<button class="wk-pill${!analisisMo?' active':''}" onclick="setAnalisisMo(null)">Todos</button>` +
+    months.map(mo =>
+      `<button class="wk-pill${analisisMo===mo?' active':''}" onclick="setAnalisisMo('${mo}')">${mo}</button>`
+    ).join('');
+}
+
+function setAnalisisCo(cid) { analisisCo = cid; renderAnalisis(); }
+function setAnalisisMo(mo)  { analisisMo = mo;  renderAnalisis(); }
+
+function renderAnalisisTable(mode) {
+  const isF = mode === 'forecast';
+  const elId = isF ? 'analisis-forecast-table' : 'analisis-real-table';
+  const el = document.getElementById(elId); if (!el) return;
+
+  // Filter weeks by selected month
+  const weeks = analisisMo
+    ? WEEKS.filter(w => w.month === analisisMo)
+    : WEEKS;
+
+  if (!weeks.length) { el.innerHTML = '<div style="padding:20px;color:var(--text-dim);">Sin semanas en este mes.</div>'; return; }
+
+  const getVal = (wid, rid) => isF
+    ? pn(getF(analisisCo, wid, rid).v)
+    : pn(getR(analisisCo, 'r_' + wid, rid).v);
+
+  // Build week-column header
+  const wkHdrs = weeks.map(w =>
+    `<th>${w.label}<br><span style="font-weight:400;font-size:9px;opacity:0.7;">${w.range}</span></th>`
+  ).join('');
+
+  // Saldo inicial row
+  const saldoIniVals = weeks.map(w => getVal(w.id, 'saldo_ini'));
+
+  // All IN rows
+  const inRowsData = IN_ROWS.map(rid => ({
+    row: ROWS.find(r => r.id === rid),
+    vals: weeks.map(w => getVal(w.id, rid))
+  }));
+
+  // All OUT rows
+  const outRowsData = OUT_ROWS.map(rid => ({
+    row: ROWS.find(r => r.id === rid),
+    vals: weeks.map(w => getVal(w.id, rid))
+  }));
+
+  // Totals per week
+  const totalInPerWk  = weeks.map((w,i) => inRowsData.reduce((s,r)  => s + r.vals[i], 0));
+  const totalOutPerWk = weeks.map((w,i) => outRowsData.reduce((s,r) => s + r.vals[i], 0));
+  const saldoFinPerWk = weeks.map((w,i) => saldoIniVals[i] + totalInPerWk[i] - totalOutPerWk[i]);
+
+  const vc = (v, cls) => `<td class="${cls||''}">${v !== 0 ? fmt(v) : '<span style="color:var(--text-dim);font-weight:300;">—</span>'}</td>`;
+
+  let html = `<table class="analisis-table">
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        ${wkHdrs}
+      </tr>
+    </thead>
+    <tbody>`;
+
+  // Saldo inicial
+  html += `<tr class="an-row-ini">
+    <td>Saldo Inicial</td>
+    ${saldoIniVals.map(v => vc(v, v>0?'cv-blue':v<0?'cv-neg':'cv-zero')).join('')}
+  </tr>`;
+
+  // Ingresos section header
+  html += `<tr class="an-row-sec">
+    <td colspan="${weeks.length+1}">▸ Ingresos</td>
+  </tr>`;
+  inRowsData.forEach(({row, vals}) => {
+    html += `<tr class="an-row-in">
+      <td style="padding-left:20px;">${row.label}</td>
+      ${vals.map(v => vc(v, v>0?'cv-pos':v<0?'cv-neg':'cv-zero')).join('')}
+    </tr>`;
+  });
+  // Total ingresos
+  html += `<tr class="rub-subtotal" style="background:var(--in-bg);">
+    <td style="font-family:var(--fh);font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--in-color);padding-left:10px;">Total Ingresos</td>
+    ${totalInPerWk.map(v => vc(v, v>0?'cv-pos':'cv-zero')).join('')}
+  </tr>`;
+
+  // Egresos section header
+  html += `<tr class="an-row-sec">
+    <td colspan="${weeks.length+1}">▸ Egresos</td>
+  </tr>`;
+  outRowsData.forEach(({row, vals}) => {
+    html += `<tr class="an-row-out">
+      <td style="padding-left:20px;">${row.label}</td>
+      ${vals.map(v => vc(v, v>0?'cv-neg':v<0?'cv-pos':'cv-zero')).join('')}
+    </tr>`;
+  });
+  // Total egresos
+  html += `<tr class="rub-subtotal" style="background:var(--out-bg);">
+    <td style="font-family:var(--fh);font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:var(--out-color);padding-left:10px;">Total Egresos</td>
+    ${totalOutPerWk.map(v => vc(v, v>0?'cv-neg':'cv-zero')).join('')}
+  </tr>`;
+
+  html += `</tbody>
+    <tfoot class="${isF?'':'real-foot'}">
+      <tr>
+        <td>Saldo Final</td>
+        ${saldoFinPerWk.map(v => vc(v, v>0?'cv-lime':v<0?'cv-neg':'cv-zero')).join('')}
+      </tr>
+    </tfoot>
+  </table>`;
+
+  el.innerHTML = html;
+}
 
 function toast(msg,type){
   const el=document.getElementById('toast');

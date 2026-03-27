@@ -2799,13 +2799,37 @@ function renderAnalisisTable(mode) {
     ? pn(getF(analisisCo, wid, rid).v)
     : pn(getR(analisisCo, 'r_' + wid, rid).v);
 
+  // ── Reconstruir saldo_ini dinámicamente desde S1 ──────────────────────────
+  // Partimos del saldo_ini capturado en la primera semana del año (S1)
+  // y acumulamos flujos semana a semana hasta cubrir todas las semanas del año.
+  // Nunca leemos saldo_ini del storage — solo los flujos.
+  const allWeeks = isF ? WEEKS : REAL_WEEKS;
+  const seedWid  = isF ? WEEKS[0].id : REAL_WEEKS[0].id;
+  const seedKey  = isF ? seedWid : 'r_' + WEEKS[0].id;
+
+  // Saldo inicial real de S1 (único que sí leemos del storage — es el punto de anclaje)
+  let runBal = isF
+    ? pn(getF(analisisCo, seedWid, 'saldo_ini').v)
+    : pn(getR(analisisCo, seedKey, 'saldo_ini').v);
+
+  // Build a map: weekId → computed saldo_ini
+  const saldoIniMap = {};
+  WEEKS.forEach((wk, idx) => {
+    const wid = isF ? wk.id : 'r_' + wk.id;
+    saldoIniMap[wk.id] = runBal;
+    // Advance runBal by this week's flows
+    const tin  = IN_ROWS.reduce((s,r)  => s + getVal(wk.id, r), 0);
+    const tout = OUT_ROWS.reduce((s,r) => s + getVal(wk.id, r), 0);
+    runBal = runBal + tin - tout;
+  });
+
+  // Saldo inicial per displayed week — from computed map (not storage)
+  const saldoIniVals = weeks.map(w => saldoIniMap[w.id] ?? 0);
+
   // Build week-column header
   const wkHdrs = weeks.map(w =>
     `<th>${w.label}<br><span style="font-weight:400;font-size:9px;opacity:0.7;">${w.range}</span></th>`
   ).join('');
-
-  // Saldo inicial row
-  const saldoIniVals = weeks.map(w => getVal(w.id, 'saldo_ini'));
 
   // All IN rows
   const inRowsData = IN_ROWS.map(rid => ({

@@ -1091,7 +1091,7 @@ function setComment(cid, wid, txt) {
 
 // ── POWER AUTOMATE / SHAREPOINT SYNC ──────────────────────────────────────
 const PA_WRITE = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/b3f9aba87057410d88456158c0f7adf1/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=y1IQPGO_ayRpuSmotLaNW_kI5Elh7XxXjadOxlMojrQ';
-const PA_READ  = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/eb608ece95cc4613a96963688c9270e9/triggers/manual/paths/invoke?api-version=1';
+const PA_READ  = 'https://default2a21bd09a37a4ec48d88bb8f1dea12.d5.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/eb608ece95cc4613a96963688c9270e9/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=PQRTI2x_q-cw9RXqGqGEv5QoEDgA9hbVxJgM7JYafHc';
 
 // Build flat array of records for a company+week to send to SharePoint
 function buildRecords(cid, wid, tipo) {
@@ -1150,21 +1150,21 @@ async function syncToSharePoint(cid, wid, tipo) {
   }
 }
 
-// Load records from SharePoint for a company+week
-async function loadFromSharePoint(cid, wid) {
-  const rwid = wid.startsWith('r_') ? rKey(wid) : wid;
+// Load ALL records from SharePoint at startup (no filters)
+async function loadAllFromSharePoint() {
   try {
     const res = await fetch(PA_READ, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ Empresa: cid, Semana: rwid })
+      body: JSON.stringify({}) // no filters — returns everything
     });
-    if (!res.ok) return; // silently fall back to localStorage
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const items = await res.json();
-    if (!Array.isArray(items) || items.length === 0) return;
+    if (!Array.isArray(items) || items.length === 0) return false;
 
     items.forEach(item => {
       const { Empresa, Semana, Tipo, Rubro, Valor, Nota, Comentario } = item;
+      if (!Empresa || !Semana) return;
       if (Tipo === 'forecast' && Rubro) {
         setF(Empresa, Semana, Rubro, 'v', Valor ? String(Valor) : '');
         if (Nota) setF(Empresa, Semana, Rubro, 'n', Nota);
@@ -1175,10 +1175,19 @@ async function loadFromSharePoint(cid, wid) {
         setComment(Empresa, Semana, Comentario || '');
       }
     });
-    saveData(); // update localStorage cache
+
+    saveData(); // cache to localStorage
+    return true;
   } catch(e) {
-    console.warn('SharePoint read error (using local cache):', e);
+    console.warn('SharePoint bulk load error (using local cache):', e);
+    return false;
   }
+}
+
+// Load records from SharePoint for a company+week (used on manual save/select)
+async function loadFromSharePoint(cid, wid) {
+  // With the new bulk loader on init, per-item load is no longer needed.
+  // Kept as no-op for compatibility.
 }
 
 function getF(cid,wid,rid) { return FDB[cid]?.[wid]?.[rid] || {v:'',n:'',c:''}; }
@@ -2799,31 +2808,45 @@ function renderAnalisisTable(mode) {
     ? pn(getF(analisisCo, wid, rid).v)
     : pn(getR(analisisCo, 'r_' + wid, rid).v);
 
-  // ── Reconstruir saldo_ini dinámicamente desde S1 ──────────────────────────
-  // Partimos del saldo_ini capturado en la primera semana del año (S1)
-  // y acumulamos flujos semana a semana hasta cubrir todas las semanas del año.
-  // Nunca leemos saldo_ini del storage — solo los flujos.
-  const allWeeks = isF ? WEEKS : REAL_WEEKS;
-  const seedWid  = isF ? WEEKS[0].id : REAL_WEEKS[0].id;
-  const seedKey  = isF ? seedWid : 'r_' + WEEKS[0].id;
+  // ── Reconstruir saldo_ini dinámicamente ──────────────────────────────────
+  // Estrategia: encontrar la primer semana que tenga flujos capturados por el usuario.
+  // Usar el saldo_ini de ESA semana como único punto de anclaje (fue escrito manualmente,
+  // no propagado). Desde ahí, reconstruir hacia adelante sumando flujos.
+  // Semanas anteriores al anclaje → saldo 0 (sin datos).
 
-  // Saldo inicial real de S1 (único que sí leemos del storage — es el punto de anclaje)
-  let runBal = isF
-    ? pn(getF(analisisCo, seedWid, 'saldo_ini').v)
-    : pn(getR(analisisCo, seedKey, 'saldo_ini').v);
+  const hasFlows = (wid) => {
+    const allRids = [...IN_ROWS, ...OUT_ROWS];
+    return allRids.some(r => getVal(wid, r) !== 0);
+  };
 
-  // Build a map: weekId → computed saldo_ini
+  // Find first week with any flow captured
+  const anchorWk = WEEKS.find(w => hasFlows(w.id));
+
   const saldoIniMap = {};
-  WEEKS.forEach((wk, idx) => {
-    const wid = isF ? wk.id : 'r_' + wk.id;
-    saldoIniMap[wk.id] = runBal;
-    // Advance runBal by this week's flows
-    const tin  = IN_ROWS.reduce((s,r)  => s + getVal(wk.id, r), 0);
-    const tout = OUT_ROWS.reduce((s,r) => s + getVal(wk.id, r), 0);
-    runBal = runBal + tin - tout;
-  });
 
-  // Saldo inicial per displayed week — from computed map (not storage)
+  if (!anchorWk) {
+    // No data at all — everything is 0
+    WEEKS.forEach(w => { saldoIniMap[w.id] = 0; });
+  } else {
+    // Weeks before anchor → 0
+    const anchorIdx = WEEKS.indexOf(anchorWk);
+    WEEKS.slice(0, anchorIdx).forEach(w => { saldoIniMap[w.id] = 0; });
+
+    // Read the manually-entered saldo_ini for the anchor week
+    let runBal = isF
+      ? pn(getF(analisisCo, anchorWk.id, 'saldo_ini').v)
+      : pn(getR(analisisCo, 'r_' + anchorWk.id, 'saldo_ini').v);
+
+    // Walk forward from anchor through all remaining weeks
+    WEEKS.slice(anchorIdx).forEach(wk => {
+      saldoIniMap[wk.id] = runBal;
+      const tin  = IN_ROWS.reduce((s,r)  => s + getVal(wk.id, r), 0);
+      const tout = OUT_ROWS.reduce((s,r) => s + getVal(wk.id, r), 0);
+      runBal = runBal + tin - tout;
+    });
+  }
+
+  // Saldo inicial per displayed week — always from computed map, never from storage
   const saldoIniVals = weeks.map(w => saldoIniMap[w.id] ?? 0);
 
   // Build week-column header
@@ -2916,11 +2939,52 @@ function toast(msg,type){
 }
 
 // ── INIT ───────────────────────────────────────────────────────────────────
-loadData();
-document.getElementById('nav-date').textContent=new Date().toLocaleDateString('es-MX',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
-document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveAll();}});
-renderSidebar('forecast');
-renderSidebar('real');
+loadData(); // load localStorage cache first (instant)
+document.getElementById('nav-date').textContent = new Date().toLocaleDateString('es-MX',{weekday:'short',year:'numeric',month:'short',day:'numeric'});
+document.addEventListener('keydown', e => { if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveAll();} });
+
+// Show loading overlay while fetching SharePoint
+const loadingOverlay = document.createElement('div');
+loadingOverlay.id = 'sp-loading';
+loadingOverlay.innerHTML = `
+  <div style="position:fixed;inset:0;z-index:9999;background:rgba(255,255,255,0.92);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:32px;color:#D0DF00;letter-spacing:-0.02em;">Traxion</div>
+    <div style="font-family:'Barlow',sans-serif;font-size:15px;color:#97999B;">Cargando datos desde SharePoint…</div>
+    <div style="width:220px;height:4px;background:#E0E0DE;border-radius:2px;overflow:hidden;">
+      <div id="sp-prog" style="height:100%;width:0%;background:linear-gradient(90deg,#B5BD00,#E3E935);border-radius:2px;transition:width 0.4s ease;"></div>
+    </div>
+    <div id="sp-load-sub" style="font-size:12px;color:#ABABAA;font-family:'Barlow',sans-serif;">Conectando…</div>
+  </div>`;
+document.body.appendChild(loadingOverlay);
+
+// Animate progress bar while loading
+let progVal = 0;
+const progInterval = setInterval(() => {
+  progVal = Math.min(progVal + Math.random() * 8, 88);
+  const bar = document.getElementById('sp-prog');
+  if (bar) bar.style.width = progVal + '%';
+}, 200);
+
+(async () => {
+  const subEl = document.getElementById('sp-load-sub');
+  if (subEl) subEl.textContent = 'Jalando registros…';
+
+  const ok = await loadAllFromSharePoint();
+
+  clearInterval(progInterval);
+  const bar = document.getElementById('sp-prog');
+  if (bar) bar.style.width = '100%';
+
+  if (subEl) subEl.textContent = ok ? '✓ Datos cargados' : '⚠ Sin conexión — usando caché local';
+
+  await new Promise(r => setTimeout(r, ok ? 400 : 900));
+
+  // Remove overlay and render
+  loadingOverlay.remove();
+  renderSidebar('forecast');
+  renderSidebar('real');
+  if (!ok) toast('Sin conexión a SharePoint — mostrando datos locales', '');
+})();
 </script>
 </body>
 </html>
